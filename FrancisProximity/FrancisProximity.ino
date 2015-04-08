@@ -17,6 +17,11 @@
 #define MPR121_ADDR 0x5C
 #define MPR121_INT 4
 
+// touch behaviour definitions. Note these pins refer to the touch electrodes and not output pins
+#define firstPin 0
+#define lastPin 9
+int lastPlayed = 0;
+
 // mp3 includes
 #include <SPI.h>
 #include <SdFat.h>
@@ -28,11 +33,6 @@ SFEMP3Shield MP3player;
 
 // sd card instantiation
 SdFat sd;
-
-// touch behaviour definitions. Note these pins refer to the touch electrodes and not output pins
-#define firstPin 0
-#define lastPin 9
-int lastPlayed = 0;
 
 //serial stuff for dispenser
 // RX is 0, TX is 1
@@ -53,21 +53,32 @@ int lastPlayed = 0;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel eyes = Adafruit_NeoPixel(2, EYESTRIP, NEO_GRB + NEO_KHZ800);
 
+// Game model variables
+int baseTime = 0; // The base value of ms to compare against elapsed ms for timeout
+bool isRoundActive = false; // Whether or not there is a round in play
+int roundTimeout = 5000; // How long to wait after last touch before processing (ms)
+
 void setup() {
   Serial.begin(57600);
   //while (!Serial) ; {} //uncomment when using the serial monitor
   
+  // Set the output pins
   pinMode(SOLENOID, OUTPUT)
   pinMode(LED_BUILTIN, OUTPUT);
   
   // SD Card setup
   if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
 
+  // Initialize everything else
   setupTouch();
   setupMp3();
   setupCrystalBall();
   setupEyes();
+  
+  resetTimer();
 }
+
+/* SETUP FUNCTIONS */
 
 // Touch Setup
 void setupTouch() {
@@ -124,23 +135,25 @@ void loop() {
   // update the idle color for the orb
   updateIdlePulsePattern();
   
-  //todo: update the timer, if the timer has hit timeout, run "complete" algorithm. otherwise, go into reading touch input
-  bool timerHasCompleted = false;
-  
-  if(timerHasCompleted){
-    // Move to the end of the round
+  // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
+  if (isRoundActive && hasRoundTimedOut()){
     completeRound();
   } else {
-    // Listen for touch inputs
     readTouchInputs();
   }
 }
+
+/* UTILITY FUNCTIONS */
 
 // Reads and handle the user's touch inputs
 void readTouchInputs() {
   if (MPR121.touchStatusChanged()) {
     MPR121.updateTouchData();
 
+    // If there's a touch, start the timer if not already started
+    // If the timer is already started, restart it
+    
+    
     // only make an action if we have one or fewer pins touched, or only do the first action
     // ignore multiple touches
     // while touching change colors?
@@ -162,6 +175,12 @@ void readTouchInputs() {
           Serial.println(" was just touched");
           
           digitalWrite(LED_BUILTIN, HIGH);
+          
+          // Activate the round
+          isRoundActive = true;
+          
+          // Reset the timer
+          resetTimer();
 
           for (int i = 0; i < strip.numPixels(); i++) {
             strip.setPixelColor(i, 0, 0, 255);
@@ -239,6 +258,20 @@ void readTouchInputs() {
   }
 }
 
+// Handles the round completion
+void completeRound(){
+  // make lights change some colours, glow red or something
+  // make crystal ball change some colours, do something cool
+  // maybe play some mp3
+  // fire the flame effect some number of times
+  // dispense a card
+  // delay for a bit before restarting
+  
+  delay(5000);
+  isRoundActive = false;
+  resetTimer();
+}
+
 // Persist the background "pulsing" color patterns for the orb, whenever there is no touch change to the current idle color state
 void updateIdlePulsePattern(){
   //todo: some algorithm to randomly pulse different colors
@@ -278,5 +311,14 @@ void fireSolenoid() {
 void dispenseFortune(){
   //todo: weird serial magic to trigger the card dispenser 
   //todo: some sort of error handling. make orb turn red or play a sound if out of cards or something?
+}
+
+bool hasRoundTimedOut(){
+  return  millis() - baseTime > roundTimeout;
+}
+
+// Set the baseline value for the timer
+void resetTimer(){
+  currentMillis = millis();
 }
 
