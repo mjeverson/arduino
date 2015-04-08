@@ -139,14 +139,14 @@ void loop() {
   if (isRoundActive && hasRoundTimedOut()){
     completeRound();
   } else {
-    readTouchInputs();
+    listenForTouchInputs();
   }
 }
 
 /* UTILITY FUNCTIONS */
 
 // Reads and handle the user's touch inputs
-void readTouchInputs() {
+void listenForTouchInputs() {
   if (MPR121.touchStatusChanged()) {
     MPR121.updateTouchData();
 
@@ -174,18 +174,13 @@ void readTouchInputs() {
           Serial.print(i);
           Serial.println(" was just touched");
           
+          // Set the round as active and reset the timeout counter
           digitalWrite(LED_BUILTIN, HIGH);
-          
-          // Activate the round
           isRoundActive = true;
-          
-          // Reset the timer
           resetTimer();
 
-          for (int i = 0; i < strip.numPixels(); i++) {
-            strip.setPixelColor(i, 0, 0, 255);
-          }
-          strip.show();
+          // Change the colour at random for the touch
+          updateOrbColor(true);
 
           //todo: instead of stoptrack is there a fade out?
           //todo: loop sounds while holding instead of play
@@ -193,80 +188,46 @@ void readTouchInputs() {
 
           if (i <= lastPin && i >= firstPin) {
             if (MP3player.isPlaying()) {
-
-              if (lastPlayed == i) {
-                // if we're already playing the requested track, stop it
-                MP3player.stopTrack();
-                MP3player.playTrack(i - firstPin);
-                Serial.print("stopping track ");
-                Serial.println(i - firstPin);
-              } else {
-                // if we're already playing a different track, stop that
-                // one and play the newly requested one
-                //MP3player.stopTrack();
+                // if we're already playing a track, stop that one and play the newly requested one
                 MP3player.stopTrack();
                 MP3player.playTrack(i - firstPin);
                 Serial.print("playing track ");
                 Serial.println(i - firstPin);
-
-                // don't forget to update lastPlayed - without it we don't
-                // have a history
-                lastPlayed = i;
               }
             } else {
-              // if we're playing nothing, play the requested track
-              // and update lastplayed
               MP3player.playTrack(i - firstPin);
               Serial.print("playing track ");
               Serial.println(i - firstPin);
-              lastPlayed = i;
             }
           }
         } else if (MPR121.isNewRelease(i)) {
-          //todo: fadeout the sound instead of just stop
-          //            MP3player.stopTrack();
-          //fadeOut(5);
           Serial.print("pin ");
           Serial.print(i);
           Serial.println(" is no longer being touched");
           digitalWrite(LED_BUILTIN, LOW);
 
-          for (int i = 0; i < strip.numPixels(); i++) {
-            strip.setPixelColor(i, 255, 0, 255);
-          }
-
-          strip.show();
+          updateOrbColor(false);
         }
-        //        else{
-        //           // loop whatever sound is playing
-        //           //todo: maybe just long tracks and fade them out when stop touching
-        //           //if(MP3player.isPlaying()){
-        ////             MP3player.playTrack(i-firstPin);
-        ////             lastPlayed = i;
-        //           //}
-        //        }
-        //      }
       }
     }
-    //  else {
-    //    // touch status hasn't changed
-    //    if(MP3player.isPlaying()){
-    //      Serial.print("touch status hasn't changed, last played: " + lastPlayed);
-    //       MP3player.playTrack(1);
-    ////       lastPlayed = i;
-    //    }
   }
 }
 
 // Handles the round completion
 void completeRound(){
-  // make lights change some colours, glow red or something
-  // make crystal ball change some colours, do something cool
-  // maybe play some mp3
-  // fire the flame effect some number of times
-  // dispense a card
-  // delay for a bit before restarting
+  //todo: make eyes change colours, glow red or something
   
+  //todo: make crystal ball change some colours, do something cool
+  
+  //todo: maybe play some mp3
+  
+  // fire the flame effect some number of times
+  fireSolenoid();
+  
+  // dispense a card
+  dispenseFortune();
+
+  // delay for a bit before resetting everything
   delay(5000);
   isRoundActive = false;
   resetTimer();
@@ -278,7 +239,8 @@ void updateIdlePulsePattern(){
 }
 
 // Change the orb's color either to the idle state or to a random color if touched
-void updateOrbColor(bool isIdle){
+void updateOrbColor(bool isTouched){
+  //todo: different behaviour if touched
   strip.setBrightness(10);
 
   for (int i = 0; i < strip.numPixels(); i++) {
@@ -290,6 +252,7 @@ void updateOrbColor(bool isIdle){
 
 // eyes glow pattern
 void updateEyeColor(){
+  //todo: pulse, flow red/orange, random patterns
   eyes.setBrightness(10);
 
   for (int i = 0; i < strip.numPixels(); i++) {
@@ -305,7 +268,6 @@ void fireSolenoid() {
   digitalWrite(SOLENOID, HIGH);
   delay(1000);
   digitalWrite(SOLENOID, LOW);
-  delay(1000);
 }
 
 void dispenseFortune(){
