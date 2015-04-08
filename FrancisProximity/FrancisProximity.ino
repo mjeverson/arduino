@@ -77,9 +77,6 @@ void setup() {
 }
 
 void loop() {
-  // update the idle color for the orb
-  updateIdlePulsePattern();
-  
   // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
   if (isRoundActive && hasRoundTimedOut()){
     completeRound();
@@ -157,12 +154,12 @@ void listenForTouchInputs() {
         if (MPR121.isNewTouch(i)) {
           //pin i was touched          
           digitalWrite(LED_BUILTIN, HIGH);
+          strip.setBrightness(40);
           
           //todo: maybe have francis's eyes open at this point?
           // Set the round as active and reset the timeout counter
           isRoundActive = true;
           resetTimer();
-          updateOrbColor(true);
 
           //todo: instead of stoptrack is there a fade out?
           //todo: loop sounds while holding instead of play?
@@ -178,8 +175,7 @@ void listenForTouchInputs() {
         } else if (MPR121.isNewRelease(i)) {
           // Pin i was released
           digitalWrite(LED_BUILTIN, LOW);
-          
-          updateOrbColor(false);
+          strip.setBrightness(10);
         }
       }
     //}
@@ -190,7 +186,8 @@ void listenForTouchInputs() {
 void completeRound(){
   isRoundActive = false;
   
-  //todo: make eyes change colours, glow red or something
+  // Make eyes change colours
+  updateEyeColor();
   
   //todo: make crystal ball change some colours, do something cool
   
@@ -209,72 +206,53 @@ void completeRound(){
   //todo: reset eye color, orb color
 }
 
-// Persist the background "pulsing" color patterns for the orb, whenever there is no touch change to the current idle color state
-void updateIdlePulsePattern(){
-  //todo: some algorithm to randomly pulse different colors
-  //randomize R, G, B values, fade to that colour from this one
-  
-}
-
-// Change the orb's color either to the idle state or to a random color if touched
-void updateOrbColor(bool isTouched){
-  // If the orb has been touched, set it to a random color and high brightness. Otherwise, keep it pulsing based on elapsed time
+//todo: keep the orb's color shifting and changing
+void updateOrbColor(){
   int green;
   int red;
   int blue;
-  int brightness;
   
-  if(isTouched){
-    green = random(0, 255);
-    red = random(0, 255);
-    blue = random(0, 255);
-    brightness = 40;
-  } else {
-    //todo: some calculation based on millis() to pick color and brightness. Get current seconds (/ 1000?) value to dictate color, millis value dictate brightness?
-    // millis / 1000 % 5 = which color to use, beware there will be some type issues here
-    // millis / 10 % 50 = which brightness to use
-    //todo: test if dividing two longs keeps the result a long
-    unsigned long seconds = 1000;
-    unsigned long tens = 10;
-    unsigned long colorSequence = (millis() / seconds) % 5; //5 possible colors based on what second we're in
-    unsigned long brightness = (millis() / tens) % 50; // 50 possible brightnesses based on what 10s we're in
-    //todo: test decreasing once 50 is reached, some sort of negatives function
-    
-    switch (colorSequence){
-      case 1:
-        green = 0;
-        red = 255;
-        blue = 0;
-        break;
-      case 2:
-        green = 0;
-        red = 0;
-        blue = 255;
-        break;
-      case 3:
-        green = 127;
-        red = 150;
-        blue = 150;
-        break;
-      case 4:
-        green = 255;
-        red = 255;
-        blue = 255;
-        break;
-      default:
-        green = 255;
-        red = 0;
-        blue = 0;
-        break;
-    }
+  //todo: some calculation based on millis() to pick color and brightness. Get current seconds (/ 1000?) value to dictate color, millis value dictate brightness?
+  // millis / 1000 % 5 = which color to use, beware there will be some type issues here
+  // millis / 10 % 50 = which brightness to use
+  //todo: test if dividing two longs keeps the result a long
+  unsigned long seconds = 1000;
+  unsigned long tens = 10;
+  unsigned long colorSequence = (millis() / seconds) % 5; //5 possible colors based on what second we're in
+  unsigned long brightness = (millis() / tens) % 50; // 50 possible brightnesses based on what 10s we're in
+  //todo: test decreasing once 49 is reached, some sort of negatives function
+  
+  switch (colorSequence){
+    case 1:
+      green = 0;
+      red = 255;
+      blue = 0;
+      break;
+    case 2:
+      green = 0;
+      red = 0;
+      blue = 255;
+      break;
+    case 3:
+      green = 127;
+      red = 150;
+      blue = 150;
+      break;
+    case 4:
+      green = 255;
+      red = 255;
+      blue = 255;
+      break;
+    default:
+      green = 255;
+      red = 0;
+      blue = 0;
+      break;
     
     green = random(0, 254)
     red = random(0, 254)
     blue = random(0, 254)
-    brightness = random(0, 39)
   }
-
-  strip.setBrightness(brightness);
 
   for (int i = 0; i < strip.numPixels(); i++) {
     strip.setPixelColor(i, green, red, blue);
