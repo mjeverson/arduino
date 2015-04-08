@@ -11,16 +11,15 @@
 // compiler error handling
 #include "Compiler_Errors.h"
 
-// touch includes
+// touch includes 
 #include <MPR121.h>
 #include <Wire.h>
+
+// touch definitions. Note these pins refer to the touch electrodes and not output pins
 #define MPR121_ADDR 0x5C
 #define MPR121_INT 4
-
-// touch behaviour definitions. Note these pins refer to the touch electrodes and not output pins
 #define firstPin 0
 #define lastPin 9
-int lastPlayed = 0;
 
 // mp3 includes
 #include <SPI.h>
@@ -28,36 +27,33 @@ int lastPlayed = 0;
 #include <SdFatUtil.h>
 #include <SFEMP3Shield.h>
 
-// mp3 variables
+// mp3 definitions
 SFEMP3Shield MP3player;
-
-// sd card instantiation
 SdFat sd;
 
-//serial stuff for dispenser
+// Serial stuff for dispenser
 // RX is 0, TX is 1
 
-//solenoid stuff (works on pin 13)
+// Solenoid definitions (works on pin 13)
 #define SOLENOID 10
 
-//led stuff (pins 10-13 are unallocated)
+// LED includes & definitions (pins 10-13 are unallocated)
 #include <Adafruit_NeoPixel.h>
 #define NEOPIXEL 11 // Works on pin 1, but may interfere with serial stuff, try this
 #define EYESTRIP 12 
 
 // Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
 //   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel eyes = Adafruit_NeoPixel(2, EYESTRIP, NEO_GRB + NEO_KHZ800);
 
 // Game model variables
-int baseTime = 0; // The base value of ms to compare against elapsed ms for timeout
+int baseTime = 0;           // The base value of ms to compare against elapsed ms for timeout
 bool isRoundActive = false; // Whether or not there is a round in play
-int roundTimeout = 5000; // How long to wait after last touch before processing (ms)
+int roundTimeout = 5000;    // How long to wait after last touch before processing (ms)
 
+// Get this party started
 void setup() {
   Serial.begin(57600);
   //while (!Serial) ; {} //uncomment when using the serial monitor
@@ -74,8 +70,19 @@ void setup() {
   setupMp3();
   setupCrystalBall();
   setupEyes();
-  
   resetTimer();
+}
+
+void loop() {
+  // update the idle color for the orb
+  updateIdlePulsePattern();
+  
+  // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
+  if (isRoundActive && hasRoundTimedOut()){
+    completeRound();
+  } else {
+    listenForTouchInputs();
+  }
 }
 
 /* SETUP FUNCTIONS */
@@ -131,40 +138,21 @@ void setupEyes() {
   eyes.show();
 }
 
-void loop() {
-  // update the idle color for the orb
-  updateIdlePulsePattern();
-  
-  // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
-  if (isRoundActive && hasRoundTimedOut()){
-    completeRound();
-  } else {
-    listenForTouchInputs();
-  }
-}
-
 /* UTILITY FUNCTIONS */
 
 // Reads and handle the user's touch inputs
 void listenForTouchInputs() {
   if (MPR121.touchStatusChanged()) {
     MPR121.updateTouchData();
-
-    // If there's a touch, start the timer if not already started
-    // If the timer is already started, restart it
     
-    
-    // only make an action if we have one or fewer pins touched, or only do the first action
-    // ignore multiple touches
-    // while touching change colors?
-    // Eyes should glow
-    // Game model
-    // fire solenoid
+    //todo: only make an action if we have one or fewer pins touched, or only do the first action
     //todo: nyan cat easter egg
-    //todo: maybe keep this in but also allow for more than one touch registering at once!
+
+    //todo: ignore or handle multi-touch - currently we only react if there is a single touch which can lead to false negatives. Probably should take first touched pin.
     if (MPR121.getNumTouches() <= 1) {
       
-      // Ensure that we've touched a valid pin
+      // Iterate through all pins, and for each, check if we have a new touch on it. 
+      //todo: There should be a better way, can't we just get informed of a specific touch?
       for (int i = firstPin; i <= lastPin; i++) {
         
         // If this is a new touch on this pin
@@ -186,19 +174,17 @@ void listenForTouchInputs() {
           //todo: loop sounds while holding instead of play
           //todo: don't stop other tracks when touchdown
 
-          if (i <= lastPin && i >= firstPin) {
-            if (MP3player.isPlaying()) {
-                // if we're already playing a track, stop that one and play the newly requested one
-                MP3player.stopTrack();
-                MP3player.playTrack(i - firstPin);
-                Serial.print("playing track ");
-                Serial.println(i - firstPin);
-              }
-            } else {
+          if (MP3player.isPlaying()) {
+              // if we're already playing a track, stop that one and play the newly requested one
+              MP3player.stopTrack();
               MP3player.playTrack(i - firstPin);
               Serial.print("playing track ");
               Serial.println(i - firstPin);
             }
+          } else {
+            MP3player.playTrack(i - firstPin);
+            Serial.print("playing track ");
+            Serial.println(i - firstPin);
           }
         } else if (MPR121.isNewRelease(i)) {
           Serial.print("pin ");
@@ -215,6 +201,8 @@ void listenForTouchInputs() {
 
 // Handles the round completion
 void completeRound(){
+  isRoundActive = false;
+  
   //todo: make eyes change colours, glow red or something
   
   //todo: make crystal ball change some colours, do something cool
@@ -229,7 +217,6 @@ void completeRound(){
 
   // delay for a bit before resetting everything
   delay(5000);
-  isRoundActive = false;
   resetTimer();
 }
 
