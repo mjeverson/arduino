@@ -51,9 +51,10 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel eyes = Adafruit_NeoPixel(2, EYESTRIP, NEO_GRB + NEO_KHZ800); //todo: make sure we have the right version - might need different params for the eyes depending
 
 // Game model variables
-int baseTime = 0;           // The base value of ms to compare against elapsed ms for timeout
+//todo: test time calculations
+unsigned long baseTime = 0;           // The base value of ms to compare against elapsed ms for timeout
+unsigned long roundTimeout = 5000;    // How long to wait after last touch before processing (ms)
 bool isRoundActive = false; // Whether or not there is a round in play
-int roundTimeout = 5000;    // How long to wait after last touch before processing (ms)
 
 // Get this party started
 void setup() {
@@ -211,15 +212,72 @@ void completeRound(){
 // Persist the background "pulsing" color patterns for the orb, whenever there is no touch change to the current idle color state
 void updateIdlePulsePattern(){
   //todo: some algorithm to randomly pulse different colors
+  //randomize R, G, B values, fade to that colour from this one
+  
 }
 
 // Change the orb's color either to the idle state or to a random color if touched
 void updateOrbColor(bool isTouched){
-  //todo: different behaviour if touched
-  strip.setBrightness(10);
+  // If the orb has been touched, set it to a random color and high brightness. Otherwise, keep it pulsing based on elapsed time
+  int green;
+  int red;
+  int blue;
+  int brightness;
+  
+  if(isTouched){
+    green = random(0, 255);
+    red = random(0, 255);
+    blue = random(0, 255);
+    brightness = 40;
+  } else {
+    //todo: some calculation based on millis() to pick color and brightness. Get current seconds (/ 1000?) value to dictate color, millis value dictate brightness?
+    // millis / 1000 % 5 = which color to use, beware there will be some type issues here
+    // millis / 10 % 50 = which brightness to use
+    //todo: test if dividing two longs keeps the result a long
+    unsigned long seconds = 1000;
+    unsigned long tens = 10;
+    unsigned long colorSequence = (millis() / seconds) % 5; //5 possible colors based on what second we're in
+    unsigned long brightness = (millis() / tens) % 50; // 50 possible brightnesses based on what 10s we're in
+    //todo: test decreasing once 50 is reached, some sort of negatives function
+    
+    switch (colorSequence){
+      case 1:
+        green = 0;
+        red = 255;
+        blue = 0;
+        break;
+      case 2:
+        green = 0;
+        red = 0;
+        blue = 255;
+        break;
+      case 3:
+        green = 127;
+        red = 150;
+        blue = 150;
+        break;
+      case 4:
+        green = 255;
+        red = 255;
+        blue = 255;
+        break;
+      default:
+        green = 255;
+        red = 0;
+        blue = 0;
+        break;
+    }
+    
+    green = random(0, 254)
+    red = random(0, 254)
+    blue = random(0, 254)
+    brightness = random(0, 39)
+  }
+
+  strip.setBrightness(brightness);
 
   for (int i = 0; i < strip.numPixels(); i++) {
-    strip.setPixelColor(i, 255, 0, 0);
+    strip.setPixelColor(i, green, red, blue);
   }
 
   strip.show();
@@ -262,7 +320,7 @@ void updateEyeColor(){
 void fireSolenoid() {
   int firingSequence =  random(0, 2);
   
-  //todo: write a function to generate sequences
+  //todo: write a function to generate sequences. randomize delay up to a max, randomize number of shots to a max
   switch (firingSequence) {
     case 1:
       digitalWrite(SOLENOID, HIGH);
