@@ -44,9 +44,11 @@ SdFat sd;
 
 // Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
 //   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
+//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel eyes = Adafruit_NeoPixel(2, EYESTRIP, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel eyes = Adafruit_NeoPixel(2, EYESTRIP, NEO_GRB + NEO_KHZ800); //todo: make sure we have the right version - might need different params for the eyes depending
 
 // Game model variables
 int baseTime = 0;           // The base value of ms to compare against elapsed ms for timeout
@@ -129,13 +131,7 @@ void setupCrystalBall() {
 // LED Eyes setup
 void setupEyes() {
   eyes.begin();
-  eyes.setBrightness(10);
-
-  for (int i = 0; i < eyes.numPixels(); i++) {
-    eyes.setPixelColor(i, 0, 0, 0);
-  }
-
-  eyes.show();
+  resetEyeColor();
 }
 
 /* UTILITY FUNCTIONS */
@@ -148,8 +144,9 @@ void listenForTouchInputs() {
     //todo: only make an action if we have one or fewer pins touched, or only do the first action
     //todo: nyan cat easter egg
 
-    //todo: ignore or handle multi-touch - currently we only react if there is a single touch which can lead to false negatives. Probably should take first touched pin.
-    if (MPR121.getNumTouches() <= 1) {
+    //todo: ignore or handle multi-touch - currently we only react if there is a single touch which can lead to false negatives. 
+    //      Current behaviour will play sounds for all touched pins. Leave this way for testing purposes, need to calibrate touch sensitivity and crossed wires
+    //if (MPR121.getNumTouches() <= 1) {
       
       // Iterate through all pins, and for each, check if we have a new touch on it. 
       //todo: There should be a better way, can't we just get informed of a specific touch?
@@ -157,45 +154,34 @@ void listenForTouchInputs() {
         
         // If this is a new touch on this pin
         if (MPR121.isNewTouch(i)) {
-          //pin i was just touched
-          Serial.print("pin ");
-          Serial.print(i);
-          Serial.println(" was just touched");
-          
-          // Set the round as active and reset the timeout counter
+          //pin i was touched          
           digitalWrite(LED_BUILTIN, HIGH);
+          
+          //todo: maybe have francis's eyes open at this point?
+          // Set the round as active and reset the timeout counter
           isRoundActive = true;
           resetTimer();
-
-          // Change the colour at random for the touch
           updateOrbColor(true);
 
           //todo: instead of stoptrack is there a fade out?
-          //todo: loop sounds while holding instead of play
-          //todo: don't stop other tracks when touchdown
+          //todo: loop sounds while holding instead of play?
+          //todo: don't stop other tracks when touchdown?
 
+          // if we're already playing a track, stop that one and play the newly requested one
           if (MP3player.isPlaying()) {
-              // if we're already playing a track, stop that one and play the newly requested one
               MP3player.stopTrack();
               MP3player.playTrack(i - firstPin);
-              Serial.print("playing track ");
-              Serial.println(i - firstPin);
-            }
           } else {
             MP3player.playTrack(i - firstPin);
-            Serial.print("playing track ");
-            Serial.println(i - firstPin);
           }
         } else if (MPR121.isNewRelease(i)) {
-          Serial.print("pin ");
-          Serial.print(i);
-          Serial.println(" is no longer being touched");
+          // Pin i was released
           digitalWrite(LED_BUILTIN, LOW);
-
+          
           updateOrbColor(false);
         }
       }
-    }
+    //}
   }
 }
 
@@ -218,6 +204,8 @@ void completeRound(){
   // delay for a bit before resetting everything
   delay(5000);
   resetTimer();
+  resetEyeColor();
+  //todo: reset eye color, orb color
 }
 
 // Persist the background "pulsing" color patterns for the orb, whenever there is no touch change to the current idle color state
@@ -231,7 +219,7 @@ void updateOrbColor(bool isTouched){
   strip.setBrightness(10);
 
   for (int i = 0; i < strip.numPixels(); i++) {
-    strip.setPixelColor(i, 0, 0, 0);
+    strip.setPixelColor(i, 255, 0, 0);
   }
 
   strip.show();
@@ -239,11 +227,32 @@ void updateOrbColor(bool isTouched){
 
 // eyes glow pattern
 void updateEyeColor(){
-  //todo: pulse, flow red/orange, random patterns
-  eyes.setBrightness(10);
-
-  for (int i = 0; i < strip.numPixels(); i++) {
-    eyes.setPixelColor(i, 0, 0, 0);
+  int eyeSequence =  random(0, 2);
+  
+  //todo: write a function to generate sequences. randomize brightness, randomize color, always fade
+  switch (eyeSequence) {
+    case 1:
+      eyes.setBrightness(25);
+    
+      for (int i = 0; i < strip.numPixels(); i++) {
+        eyes.setPixelColor(i, 255, 0, 0);
+      }      
+      break;
+    case 2:
+      eyes.setBrightness(25);
+    
+      for (int i = 0; i < strip.numPixels(); i++) {
+        eyes.setPixelColor(i, 0, 0, 255);
+      }       
+      break;
+    default:
+      //todo: pulse to a bright red
+      eyes.setBrightness(50);
+    
+      for (int i = 0; i < strip.numPixels(); i++) {
+        eyes.setPixelColor(i, 0, 255, 0);
+      }
+      break;
   }
 
   eyes.show();
@@ -251,10 +260,34 @@ void updateEyeColor(){
 
 // Fire the flame effect
 void fireSolenoid() {
-  //todo: different solenoid firing patterns
-  digitalWrite(SOLENOID, HIGH);
-  delay(1000);
-  digitalWrite(SOLENOID, LOW);
+  int firingSequence =  random(0, 2);
+  
+  //todo: write a function to generate sequences
+  switch (firingSequence) {
+    case 1:
+      digitalWrite(SOLENOID, HIGH);
+      delay(500);
+      digitalWrite(SOLENOID, LOW);
+      delay(500);
+      digitalWrite(SOLENOID, HIGH);
+      delay(500);
+      digitalWrite(SOLENOID, LOW);      
+      break;
+    case 2:
+      digitalWrite(SOLENOID, HIGH);
+      delay(1000);
+      digitalWrite(SOLENOID, LOW);
+      delay(1000);
+      digitalWrite(SOLENOID, HIGH);
+      delay(1000);
+      digitalWrite(SOLENOID, LOW);  
+      break;
+    default:
+      digitalWrite(SOLENOID, HIGH);
+      delay(1000);
+      digitalWrite(SOLENOID, LOW);
+      break;
+  }
 }
 
 void dispenseFortune(){
@@ -269,5 +302,15 @@ bool hasRoundTimedOut(){
 // Set the baseline value for the timer
 void resetTimer(){
   currentMillis = millis();
+}
+
+void resetEyeColor(){
+  eyes.setBrightness(10);
+
+  for (int i = 0; i < eyes.numPixels(); i++) {
+    eyes.setPixelColor(i, 0, 0, 0);
+  }
+
+  eyes.show();
 }
 
