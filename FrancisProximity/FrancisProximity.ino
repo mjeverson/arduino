@@ -8,9 +8,6 @@
  This is the logic behind Francis the Fantastic, a fire fortune-teller being created as part of the 2015 Burning Man Honourarium installation, the Charnival.
 *******************************************************************************/
 
-// compiler error handling
-#include <Compiler_Errors.h>
-
 // touch includes 
 #include <MPR121.h>
 #include <Wire.h>
@@ -217,10 +214,10 @@ void updateOrbColor(){
   // millis / 10 % 50 = which brightness to use
   //todo: test if dividing two longs keeps the result a long
   unsigned long seconds = 1000;
-  unsigned long tens = 10;
   unsigned long colorSequence = (millis() / seconds) % 5; //5 possible colors based on what second we're in
-  unsigned long brightness = (millis() / tens) % 50; // 50 possible brightnesses based on what 10s we're in
   //todo: test decreasing once 49 is reached, some sort of negatives function
+  
+  //todo: something like, random 0 to 2 to pick R/G/B and a direction, then while its not 0/255 keep increasing/decreasing, then pick another color
   
   switch (colorSequence){
     case 1:
@@ -248,10 +245,6 @@ void updateOrbColor(){
       red = 0;
       blue = 0;
       break;
-    
-    green = random(0, 254);
-    red = random(0, 254);
-    blue = random(0, 254);
   }
 
   for (int i = 0; i < strip.numPixels(); i++) {
