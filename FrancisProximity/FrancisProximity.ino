@@ -9,7 +9,7 @@
 *******************************************************************************/
 
 // compiler error handling
-#include "Compiler_Errors.h"
+#include <Compiler_Errors.h>
 
 // touch includes 
 #include <MPR121.h>
@@ -62,7 +62,7 @@ void setup() {
   //while (!Serial) ; {} //uncomment when using the serial monitor
   
   // Set the output pins
-  pinMode(SOLENOID, OUTPUT)
+  pinMode(SOLENOID, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
   
   // SD Card setup
@@ -249,9 +249,9 @@ void updateOrbColor(){
       blue = 0;
       break;
     
-    green = random(0, 254)
-    red = random(0, 254)
-    blue = random(0, 254)
+    green = random(0, 254);
+    red = random(0, 254);
+    blue = random(0, 254);
   }
 
   for (int i = 0; i < strip.numPixels(); i++) {
@@ -337,7 +337,7 @@ bool hasRoundTimedOut(){
 
 // Set the baseline value for the timer
 void resetTimer(){
-  currentMillis = millis();
+  baseTime = millis();
 }
 
 void resetEyeColor(){
