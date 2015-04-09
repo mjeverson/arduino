@@ -49,9 +49,9 @@ Adafruit_NeoPixel eyes = Adafruit_NeoPixel(2, EYESTRIP, NEO_GRB + NEO_KHZ800); /
 
 // Game model variables
 //todo: test time calculations
+bool isRoundActive = false; // Whether or not there is a round in play
 unsigned long baseTime = 0;           // The base value of ms to compare against elapsed ms for timeout
 unsigned long roundTimeout = 5000;    // How long to wait after last touch before processing (ms)
-bool isRoundActive = false; // Whether or not there is a round in play
 
 // Get this party started
 void setup() {
@@ -90,11 +90,10 @@ void setupTouch() {
   MPR121.setInterruptPin(MPR121_INT);
 
   //TODO: Adjust touch sensitivity
-  // Changes from Touch MP3. This is the touch threshold - setting it low makes it more like a proximity trigger
-  // default value is 40 for touch
+  // This is the touch threshold - setting it low makes it more like a proximity trigger. Default value is 40 for touch
   MPR121.setTouchThreshold(20);
 
-  // this is the release threshold - must ALWAYS be smaller than the touch threshold
+  // This is the release threshold - must ALWAYS be smaller than the touch threshold
   MPR121.setReleaseThreshold(10);
 }
 
@@ -110,9 +109,8 @@ void setupMp3() {
   }
 }
 
-// Crystal ball ring setup
+// Crystal ball LED ring setup
 void setupCrystalBall() {
-  // LED NeoPixel Ring Code
   strip.begin();
   strip.setBrightness(10);
 
