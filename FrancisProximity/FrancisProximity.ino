@@ -29,7 +29,8 @@ SFEMP3Shield MP3player;
 SdFat sd;
 
 // Serial stuff for dispenser
-// RX is 0, TX is 1
+#define RX 0
+#define TX 1
 
 // Solenoid definitions (works on pin 13)
 #define SOLENOID 10
@@ -73,8 +74,9 @@ void setup() {
   //while (!Serial) ; {} //uncomment when using the serial monitor
   //todo: command to fix card length (maybe not required?)
 
-
   // Set the output pins
+  pinMode(RX, INPUT);
+  pinMode(TX, OUTPUT);
   pinMode(SOLENOID, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -199,8 +201,8 @@ void completeRound() {
 
   // Make eyes change colours
   updateEyeColor(true);
-  
- // Make crystal ball get very bright on its current color
+
+  // Make crystal ball get very bright on its current color
   updateOrbBrightness(true);
 
   //todo: maybe play some mp3
@@ -315,11 +317,14 @@ void updateEyeColor(bool isThinkingState) {
 
 // Fire the flame effect
 void fireSolenoid() {
-  int firingSequence =  random(0, 2);
+  int firingSequence =  random(0, 3);
 
-  //todo: write a function to generate sequences. randomize delay up to a max, randomize number of shots to a max
   switch (firingSequence) {
     case 1:
+      digitalWrite(SOLENOID, HIGH);
+      delay(500);
+      digitalWrite(SOLENOID, LOW);
+      delay(500);
       digitalWrite(SOLENOID, HIGH);
       delay(500);
       digitalWrite(SOLENOID, LOW);
@@ -330,11 +335,28 @@ void fireSolenoid() {
       break;
     case 2:
       digitalWrite(SOLENOID, HIGH);
-      delay(1000);
+      delay(500);
       digitalWrite(SOLENOID, LOW);
       delay(1000);
       digitalWrite(SOLENOID, HIGH);
+      delay(500);
+      digitalWrite(SOLENOID, LOW);
+      delay(500);
+      digitalWrite(SOLENOID, HIGH);
+      delay(500);
+      digitalWrite(SOLENOID, LOW);
+      break;
+    case 3:
+      digitalWrite(SOLENOID, HIGH);
+      delay(500);
+      digitalWrite(SOLENOID, LOW);
+      delay(500);
+      digitalWrite(SOLENOID, HIGH);
+      delay(500);
+      digitalWrite(SOLENOID, LOW);
       delay(1000);
+      digitalWrite(SOLENOID, HIGH);
+      delay(500);
       digitalWrite(SOLENOID, LOW);
       break;
     default:
