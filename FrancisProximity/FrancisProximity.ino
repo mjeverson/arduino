@@ -49,9 +49,14 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel eyes = Adafruit_NeoPixel(2, EYESTRIP, NEO_GRB + NEO_KHZ800); //todo: make sure we have the right version - might need different params for the eyes depending
 
 // LED tracking values for the orb and the eyes for fading purposes. Everything starts white.
-int stripGreenStart = 255;
-int stripRedStart = 255;
-int stripBlueStart = 255;
+#define stripFadeRate = 50;
+int stripGreenStart = 0;
+int stripRedStart = 0;
+int stripBlueStart = 0;
+int stripGreenEnd = 255;
+int stripRedEnd = 255;
+int stripBlueEnd = 255;
+int stripFadeProgress = -1;
 
 int eyesGreenLeftStart = 0;
 int eyesRedLeftStart = 255;
@@ -92,8 +97,9 @@ void setup() {
 }
 
 void loop() {
-  //todo: for fading of eyes or what have you, maybe set current state for looping purposes
-
+  // Fade the orb colors
+  updateOrbColor();
+  
   // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
   if (isRoundActive && hasRoundTimedOut()) {
     completeRound();
@@ -222,38 +228,38 @@ void completeRound() {
 
 // Keep the orb's color shifting and changing
 void updateOrbColor() {
-  int Gend = random(0, 255);
-  int Rend = random(0, 255);
-  int Bend = random(0, 255);
-  int rate = 50;
-
-  // Pick a random color and fade to that color
-  for (int i = 0; i < rate; i++) // larger values of 'rate' will give a smoother/slower transition.
-  {
-    int Gnew = stripGreenStart + (Gend - stripGreenStart) * i / rate;
-    int Rnew = stripRedStart + (Rend - stripRedStart) * i / rate;
-    int Bnew = stripBlueStart + (Bend - stripBlueStart) * i / rate;
+  if(stripFadeProgress >= 0 && stripFadeProgress < stripFadeRate){
+    // next step of the fade
+    int Gnew = stripGreenStart + (stripGreenEnd - stripGreenStart) * stripFadeProgress / stripFadeRate;
+    int Rnew = stripRedStart + (stripRedEnd - stripRedStart) * stripFadeProgress / stripFadeRate;
+    int Bnew = stripBlueStart + (stripBlueEnd - stripBlueStart) * stripFadeProgress / stripFadeRate;
 
     // set pixel color here
     for (int i = 0; i < strip.numPixels(); i++) {
       strip.setPixelColor(i, Gnew, Rnew, Bnew);
     }
+    
+    stripFadeProgress++;
+  } else {
+    // pick new colors
+    stripGreenEnd = random(0, 255);
+    stripRedEnd = random(0, 255);
+    stripBlueEnd = random(0, 255);
+  
+    // flip flag    
+    stripFadeProgress = 0;
   }
-
-  stripGreenStart = Gend;
-  stripRedStart = Rend;
-  stripBlueStart = Bend;
 
   strip.show();
 }
 
 // Brightens or darkens the orb
-void updateOrbBrightness(bool isThinkingState) {
+void updateOrbBrightness(bool isCompletingRound) {
   int brightnessStart = 50;
   int brightnessEnd = 10;
   int rate = 50;
 
-  if (isThinkingState) {
+  if (isCompletingRound) {
     brightnessStart = 10;
     brightnessEnd = 50;
   }
@@ -266,7 +272,7 @@ void updateOrbBrightness(bool isThinkingState) {
 }
 
 // Eyes glow pattern
-void updateEyeColor(bool isThinkingState) {
+void updateEyeColor(bool isCompletingRound) {
   // Pick a color for each eye and slowly fade them both, along with brightness
   int GLeftEnd = 0;
   int RLeftEnd = 255;
@@ -278,7 +284,7 @@ void updateEyeColor(bool isThinkingState) {
   int brightnessEnd = 10;
   int rate = 10;
 
-  if (isThinkingState) {
+  if (isCompletingRound) {
     GLeftEnd = random(0, 255);
     RLeftEnd = random(0, 255);
     BLeftEnd = random(0, 255);
