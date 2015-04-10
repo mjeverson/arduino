@@ -82,7 +82,7 @@ void setup() {
   
   // Set up the serial communication with the dispenser
   Serial.begin(9600);
-  //while (!Serial) ; {} //uncomment when using the serial monitor
+//  while (!Serial) ; {} // uncomment when hooked up to serial
   
   // Command to fix card length (maybe not required?) 0xF0 = default, drops card | 0xF1 - F4 varying degrees of stoppage
   Serial.write(0xF0);
