@@ -33,7 +33,7 @@ SdFat sd;
 #define TX 1 // connect to RX of other device
 
 // Solenoid definitions (works on pin 13)
-#define SOLENOID 10
+#define SOLENOID 13
 
 // LED includes & definitions (pins 10-13 are unallocated)
 #include <Adafruit_NeoPixel.h>
