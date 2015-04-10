@@ -381,8 +381,7 @@ void dispenseFortune() {
   bool success = false;
   bool hasCards = false;
 
-  //  check if there are cards before issuing dispense
-  // Status request command
+  // Check if there are cards before issuing dispense
   Serial.write(0x31);
   Serial.flush();
 
@@ -392,8 +391,6 @@ void dispenseFortune() {
     if (readByte == 0) {
       //todo: if out of cards, show a warning
       
-      // Give some time to realize there's an error
-      delay(5000);
       return;
     }
   }
@@ -401,9 +398,10 @@ void dispenseFortune() {
   // Issuing Card Command
   Serial.write(0x40);
 
+  // Wait for dispenser to complete: Status request command
   while (!success) {
-    // Status request command
     Serial.write(0x31);
+    Serial.flush();
 
     if (Serial.available() > 0) {
       int readByte = Serial.read();
@@ -416,11 +414,9 @@ void dispenseFortune() {
 
         //todo: some sort of display warning
 
-        // Give some time to realize there's an error
-        delay(5000);
-
         // Clear Command
         Serial.write(0x30);
+        
         break;
       } else {
         success = true;
