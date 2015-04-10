@@ -103,6 +103,9 @@ void setup() {
 void loop() { 
   // Fade the orb colors
   updateOrbColor();
+  
+  //todo: evaluate recently pressed buttons for easter egg purposes, nyan cat maybe?
+  //        track pins pressed in an array, evaluate the array, set 'play easter egg' flag
 
   // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
   if (isRoundActive && hasRoundTimedOut()) {
@@ -163,8 +166,6 @@ void setupEyes() {
 void listenForTouchInputs() {
   if (MPR121.touchStatusChanged()) {
     MPR121.updateTouchData();
-
-    //todo: nyan cat easter egg
 
     //todo: ignore or handle multi-touch - currently we only react if there is a single touch which can lead to false negatives.
     //      Current behaviour will play sounds for all touched pins. Leave this way for testing purposes, need to calibrate touch sensitivity and crossed wires
