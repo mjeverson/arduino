@@ -29,8 +29,8 @@ SFEMP3Shield MP3player;
 SdFat sd;
 
 // Serial stuff for dispenser
-#define RX 0
-#define TX 1
+#define RX 0 // connect to TX of other device
+#define TX 1 // connect to RX of other device
 
 // Solenoid definitions (works on pin 13)
 #define SOLENOID 10
@@ -68,7 +68,7 @@ int eyesBrightnessStart = 10;
 
 // Game model variables
 //todo: test time calculations
-bool isRoundActive = false; // Whether or not there is a round in play
+bool isRoundActive = false;           // Whether or not there is a round in play
 unsigned long baseTime = 0;           // The base value of ms to compare against elapsed ms for timeout
 unsigned long roundTimeout = 5000;    // How long to wait after last touch before processing (ms)
 
@@ -81,6 +81,7 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   
   // Set up the serial communication with the dispenser
+//  todo: may actually need SoftwareSerial library if these pins aren't already configured
   Serial.begin(9600);
 //  while (!Serial) ; {} // uncomment when hooked up to serial
   
