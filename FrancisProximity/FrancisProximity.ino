@@ -49,7 +49,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel eyes = Adafruit_NeoPixel(2, EYESTRIP, NEO_GRB + NEO_KHZ800); //todo: make sure we have the right version - might need different params for the eyes depending
 
 // LED tracking values for the orb and the eyes for fading purposes. Everything starts white.
-#define stripFadeRate = 50;
+int stripFadeRate = 50;
 int stripGreenStart = 0;
 int stripRedStart = 0;
 int stripBlueStart = 0;
@@ -74,16 +74,19 @@ unsigned long roundTimeout = 5000;    // How long to wait after last touch befor
 
 // Get this party started
 void setup() {
-  //todo: Set up the serial communication with the dispenser
-  Serial.begin(9600);
-  //while (!Serial) ; {} //uncomment when using the serial monitor
-  //todo: command to fix card length (maybe not required?)
-
   // Set the output pins
   pinMode(RX, INPUT);
   pinMode(TX, OUTPUT);
   pinMode(SOLENOID, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
+  
+  // Set up the serial communication with the dispenser
+  Serial.begin(9600);
+  //while (!Serial) ; {} //uncomment when using the serial monitor
+  
+  // Command to fix card length (maybe not required?) 0xF0 = default, drops card | 0xF1 - F4 varying degrees of stoppage
+  Serial.write(0xF0);
+  Serial.flush();
 
   // SD Card setup
   if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
@@ -96,10 +99,10 @@ void setup() {
   resetTimer();
 }
 
-void loop() {
+void loop() { 
   // Fade the orb colors
   updateOrbColor();
-  
+
   // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
   if (isRoundActive && hasRoundTimedOut()) {
     completeRound();
@@ -228,7 +231,7 @@ void completeRound() {
 
 // Keep the orb's color shifting and changing
 void updateOrbColor() {
-  if(stripFadeProgress >= 0 && stripFadeProgress < stripFadeRate){
+  if (stripFadeProgress >= 0 && stripFadeProgress < stripFadeRate) {
     // next step of the fade
     int Gnew = stripGreenStart + (stripGreenEnd - stripGreenStart) * stripFadeProgress / stripFadeRate;
     int Rnew = stripRedStart + (stripRedEnd - stripRedStart) * stripFadeProgress / stripFadeRate;
@@ -238,15 +241,15 @@ void updateOrbColor() {
     for (int i = 0; i < strip.numPixels(); i++) {
       strip.setPixelColor(i, Gnew, Rnew, Bnew);
     }
-    
+
     stripFadeProgress++;
   } else {
     // pick new colors
     stripGreenEnd = random(0, 255);
     stripRedEnd = random(0, 255);
     stripBlueEnd = random(0, 255);
-  
-    // flip flag    
+
+    // flip flag
     stripFadeProgress = 0;
   }
 
@@ -373,15 +376,57 @@ void fireSolenoid() {
   }
 }
 
+//todo: weird serial magic to trigger the card dispenser
 void dispenseFortune() {
-  //todo: weird serial magic to trigger the card dispenser
+  bool success = false;
+  bool hasCards = false;
 
-  //todo: something like this...
-  //   Issuing Command
-  //   Status request command
-  //    If busy flag, keep polling status
-  //    If error bit, do some display warning like play sound/orb red/something else
-  //   Clear Command
+  //  check if there are cards before issuing dispense
+  // Status request command
+  Serial.write(0x31);
+  Serial.flush();
+
+  if (Serial.available() > 0) {
+    int readByte = Serial.read();
+    
+    if (readByte == 0) {
+      //todo: if out of cards, show a warning
+      
+      // Give some time to realize there's an error
+      delay(5000);
+      return;
+    }
+  }
+
+  // Issuing Card Command
+  Serial.write(0x40);
+
+  while (!success) {
+    // Status request command
+    Serial.write(0x31);
+
+    if (Serial.available() > 0) {
+      int readByte = Serial.read();
+
+      if (readByte == 0) {
+        //todo: if busy, keep polling status
+        continue;
+      } else if (readByte == 0) {
+        //todo: If error bit, do some display warning like play sound/orb red/something else
+
+        //todo: some sort of display warning
+
+        // Give some time to realize there's an error
+        delay(5000);
+
+        // Clear Command
+        Serial.write(0x30);
+        break;
+      } else {
+        success = true;
+      }
+    }
+  }
 }
 
 bool hasRoundTimedOut() {
