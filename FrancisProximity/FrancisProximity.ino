@@ -70,7 +70,7 @@ unsigned long roundTimeout = 5000;    // How long to wait after last touch befor
 // Get this party started
 void setup() {
   //todo: Set up the serial communication with the dispenser
-  Serial.begin(57600);
+  Serial.begin(9600);
   //while (!Serial) ; {} //uncomment when using the serial monitor
   //todo: command to fix card length (maybe not required?)
 
