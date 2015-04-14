@@ -28,16 +28,12 @@
 SFEMP3Shield MP3player;
 SdFat sd;
 
-// Serial stuff for dispenser
-#define RX 0 // connect to TX of other device
-#define TX 1 // connect to RX of other device
-
 // Solenoid definitions (works on pin 13)
 #define SOLENOID 13
 
 // LED includes & definitions (pins 10-13 are unallocated)
 #include <Adafruit_NeoPixel.h>
-#define NEOPIXEL 11 // Works on pin 1, but may interfere with serial stuff, try this
+#define NEOPIXEL 11 // Works on pin 1, but may interfere with Serial1 stuff, try this
 #define EYESTRIP 12
 
 // Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
@@ -75,51 +71,54 @@ unsigned long roundTimeout = 5000;    // How long to wait after last touch befor
 // Get this party started
 void setup() {
   // Set the output pins
-  pinMode(RX, INPUT);
-  pinMode(TX, OUTPUT);
   pinMode(SOLENOID, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
   
-  // Set up the serial communication with the dispenser
-//  todo: may actually need SoftwareSerial library if these pins aren't already configured
+  // Set up the Serial1 communication with the dispenser
+//  todo: may actually need SoftwareSerial1 library if these pins aren't already configured
   Serial.begin(9600);
-//  while (!Serial) ; {} // uncomment when hooked up to serial
+  Serial1.begin(9600);
+  while (!Serial1) ; {} // uncomment when hooked up to Serial1
   
-  // Command to fix card length (maybe not required?) 0xF0 = default, drops card | 0xF1 - F4 varying degrees of stoppage
-  Serial.write(0xF0);
-  Serial.flush();
+//  // Command to fix card length (maybe not required?) 0xF0 = default, drops card | 0xF1 - F4 varying degrees of stoppage
+//  Serial1.write(0xF0);
+//  Serial1.flush();
 
-  // SD Card setup
-  if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
-
-  // Initialize everything else
-  setupTouch();
-  setupMp3();
-  setupCrystalBall();
-  setupEyes();
-  resetTimer();
+//  // SD Card setup
+//  if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
+//
+//  // Initialize everything else
+//  setupTouch();
+//  setupMp3();
+//  setupCrystalBall();
+//  setupEyes();
+//  resetTimer();
 }
 
 void loop() { 
-  // Fade the orb colors
-  updateOrbColor();
-  
-  //todo: evaluate recently pressed buttons for easter egg purposes, nyan cat maybe?
-  //        track pins pressed in an array, evaluate the array, set 'play easter egg' flag
-
-  // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
-  if (isRoundActive && hasRoundTimedOut()) {
-    completeRound();
-  } else {
-    listenForTouchInputs();
+  if (Serial.available() > 0){
+    Serial.read();
+    dispenseFortune();
   }
+//  // Fade the orb colors
+//  updateOrbColor();
+//  
+//  //todo: evaluate recently pressed buttons for easter egg purposes, nyan cat maybe?
+//  //        track pins pressed in an array, evaluate the array, set 'play easter egg' flag
+//
+//  // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
+//  if (isRoundActive && hasRoundTimedOut()) {
+//    completeRound();
+//  } else {
+//    listenForTouchInputs();
+//  }
 }
 
 /* SETUP FUNCTIONS */
 
 // Touch Setup
 void setupTouch() {
-  if (!MPR121.begin(MPR121_ADDR)) Serial.println("error setting up MPR121");
+  if (!MPR121.begin(MPR121_ADDR)) Serial1.println("error setting up MPR121");
   MPR121.setInterruptPin(MPR121_INT);
 
   //TODO: Adjust touch sensitivity
@@ -136,9 +135,9 @@ void setupMp3() {
   MP3player.setVolume(0, 0);
 
   if (result != 0) {
-    Serial.print("Error code: ");
-    Serial.print(result);
-    Serial.println(" when trying to start MP3 player");
+    Serial1.print("Error code: ");
+    Serial1.print(result);
+    Serial1.println(" when trying to start MP3 player");
   }
 }
 
@@ -378,48 +377,56 @@ void fireSolenoid() {
   }
 }
 
-//todo: weird serial magic to trigger the card dispenser
+//todo: weird Serial1 magic to trigger the card dispenser
 void dispenseFortune() {
   bool success = false;
   bool hasCards = false;
 
   // Check if there are cards before issuing dispense
-  Serial.write(0x31);
-  Serial.flush();
-
-  if (Serial.available() > 0) {
-    int readByte = Serial.read();
-    
-    if (readByte == 0) {
-      //todo: if out of cards, show a warning
-      
-      return;
-    }
-  }
+//  Serial1.write(0x31);
+//  Serial1.flush();
+//
+//  if (Serial1.available() > 0) {
+//    int readByte = Serial1.read();
+//    
+//    if (readByte == 0) {
+//      //todo: if out of cards, show a warning
+//      
+//      return;
+//    }
+//  }
 
   // Issuing Card Command
-  Serial.write(0x40);
+//  byte command[] = {0x02, 0x40, 0x03, 0x00};
+//  command[3] = command[0] ^ command[1] ^ command[2];
+
+//  Serial1.write(command, 4);
+//  Serial1.flush();
 
   // Wait for dispenser to complete: Status request command
   while (!success) {
-    Serial.write(0x31);
-    Serial.flush();
+    byte command[] = {0x02,0x31,0x03,0x02^0x31^0x03};
+    Serial1.write(command, 4);
 
-    if (Serial.available() > 0) {
-      int readByte = Serial.read();
+    while (Serial1.available() > 0) {
+      byte readByte = Serial1.read();
+      Serial.println(readByte, DEC);
 
-      if (readByte == 0) {
+      if (readByte == 6) {
+        delay(50);
+        Serial.println("waiting to repoll");
+       
         //todo: if busy, keep polling status
-        continue;
-      } else if (readByte == 0) {
+        //continue;
+      } else if (readByte) {
         //todo: If error bit, do some display warning like play sound/orb red/something else
 
         //todo: some sort of display warning
 
         // Clear Command
-        Serial.write(0x30);
+        //Serial1.write(0x30);
         
-        break;
+        //break;
       } else {
         success = true;
       }
