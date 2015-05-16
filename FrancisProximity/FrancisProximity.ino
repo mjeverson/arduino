@@ -45,7 +45,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel eyes = Adafruit_NeoPixel(2, EYESTRIP, NEO_GRB + NEO_KHZ800); //todo: make sure we have the right version - might need different params for the eyes depending
 
 // LED tracking values for the orb and the eyes for fading purposes. Everything starts white.
-int stripFadeRate = 50;
+int stripFadeRate = 1000;
 int stripGreenStart = 0;
 int stripRedStart = 0;
 int stripBlueStart = 0;
@@ -80,38 +80,50 @@ void setup() {
   Serial1.begin(9600);
   while (!Serial1) ; {} // uncomment when hooked up to Serial1
   
-//  // Command to fix card length (maybe not required?) 0xF0 = default, drops card | 0xF1 - F4 varying degrees of stoppage
-//  Serial1.write(0xF0);
-//  Serial1.flush();
+  // Command to fix card length (maybe not required?) 0xF0 = default, drops card | 0xF1 - F4 varying degrees of stoppage
+  byte command[] = {0x02, 0xF4, 0x03, 0x00};
+  command[3] = command[0] ^ command[1] ^ command[2];
+  Serial1.write(command, 4);
+  Serial.println("sent command to set stop distance");
+//  
+//  while(!Serial1.available()){};
+//  
+//  if (Serial1.available() > 0){
+//    if (Serial1.read() == 6){
+//      Serial.println("Received positive ack from stop distance command");
+//    }
+//  }
 
-//  // SD Card setup
-//  if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
-//
-//  // Initialize everything else
-//  setupTouch();
-//  setupMp3();
-//  setupCrystalBall();
-//  setupEyes();
-//  resetTimer();
+  // SD Card setup
+  if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
+
+  // Initialize everything else
+  setupTouch();
+  setupMp3();
+  setupCrystalBall();
+  setupEyes();
+  resetTimer();
 }
 
 void loop() { 
+  //test fortune dispense on key press
   if (Serial.available() > 0){
     Serial.read();
     dispenseFortune();
   }
-//  // Fade the orb colors
-//  updateOrbColor();
-//  
-//  //todo: evaluate recently pressed buttons for easter egg purposes, nyan cat maybe?
-//  //        track pins pressed in an array, evaluate the array, set 'play easter egg' flag
-//
-//  // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
-//  if (isRoundActive && hasRoundTimedOut()) {
+  
+  // Fade the orb colors
+  updateOrbColor();
+  
+  //todo: evaluate recently pressed buttons for easter egg purposes, nyan cat maybe?
+  //        track pins pressed in an array, evaluate the array, set 'play easter egg' flag
+
+  // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
+  if (isRoundActive && hasRoundTimedOut()) {
 //    completeRound();
-//  } else {
-//    listenForTouchInputs();
-//  }
+  } else {
+    listenForTouchInputs();
+  }
 }
 
 /* SETUP FUNCTIONS */
@@ -123,10 +135,10 @@ void setupTouch() {
 
   //TODO: Adjust touch sensitivity
   // This is the touch threshold - setting it low makes it more like a proximity trigger. Default value is 40 for touch
-  MPR121.setTouchThreshold(20);
+  MPR121.setTouchThreshold(2);
 
   // This is the release threshold - must ALWAYS be smaller than the touch threshold
-  MPR121.setReleaseThreshold(10);
+  MPR121.setReleaseThreshold(1);
 }
 
 // Starts up the mp3 player
@@ -178,7 +190,7 @@ void listenForTouchInputs() {
       if (MPR121.isNewTouch(i)) {
         //pin i was touched
         digitalWrite(LED_BUILTIN, HIGH);
-        strip.setBrightness(50);
+        strip.setBrightness(150);
 
         // Set the round as active and reset the timeout counter
         isRoundActive = true;
@@ -230,6 +242,7 @@ void completeRound() {
   resetTimer();
 }
 
+//todo: maybe have it pulse white and only change to the color and get brighter, and freeze on it, with touch?
 // Keep the orb's color shifting and changing
 void updateOrbColor() {
   if (stripFadeProgress >= 0 && stripFadeProgress < stripFadeRate) {
@@ -380,55 +393,88 @@ void fireSolenoid() {
 //todo: weird Serial1 magic to trigger the card dispenser
 void dispenseFortune() {
   bool success = false;
-  bool hasCards = false;
-
-  // Check if there are cards before issuing dispense
-//  Serial1.write(0x31);
-//  Serial1.flush();
-//
-//  if (Serial1.available() > 0) {
-//    int readByte = Serial1.read();
-//    
-//    if (readByte == 0) {
-//      //todo: if out of cards, show a warning
-//      
-//      return;
-//    }
-//  }
-
+  
   // Issuing Card Command
-//  byte command[] = {0x02, 0x40, 0x03, 0x00};
-//  command[3] = command[0] ^ command[1] ^ command[2];
+  byte command[] = {0x02, 0x40, 0x03, 0x00};
+  command[3] = command[0] ^ command[1] ^ command[2];
 
-//  Serial1.write(command, 4);
-//  Serial1.flush();
+  Serial1.write(command, 4);
+  Serial.println("sent command to dispense");
+  
+  while(!Serial1.available()){};
+  
+  if (Serial1.available() > 0){
+    if (Serial1.read() == 6){
+      Serial.println("Received positive ack from dispense command");
+    }
+  }
+
+  bool checkForStatus = true;
 
   // Wait for dispenser to complete: Status request command
   while (!success) {
     byte command[] = {0x02,0x31,0x03,0x02^0x31^0x03};
     Serial1.write(command, 4);
+    Serial.println("sent status update");
+
+    while(!Serial1.available()){
+      Serial.println("waiting for data from status command");
+      delay(1000);
+    };
+
+    bool readDataByte = false;
+    bool ignoreNextByte = false;
 
     while (Serial1.available() > 0) {
+      Serial.println("Got some data from status update");
       byte readByte = Serial1.read();
-      Serial.println(readByte, DEC);
+      Serial.println(readByte, HEX);
 
-      if (readByte == 6) {
-        delay(50);
-        Serial.println("waiting to repoll");
-       
+      if (ignoreNextByte == true){
+        Serial.println("ignoring checksum");
+        ignoreNextByte = false;
+        checkForStatus = true;
+        //continue;
+      } else if (readByte == 2){
+        //start of text
+        Serial.println("received 2, next is data byte");
+        readDataByte = true;
+      } else if (readDataByte == true){
+        Serial.println("reading data byte");
+        Serial.println(readByte, DEC);
+        Serial.println(readByte, BIN);
+        
+        byte busyByte = readByte & B01000000;
+        byte motorByte = readByte & B00010000;
+        byte sensorByte = readByte & B00000100;
+        byte stackByte = readByte & B00000001;  
+      
+        if (busyByte > 0){
+          //todo: do nothing
+           Serial.println("BUSY");
+        } else if (motorByte > 0){
+          Serial.println("MOTOR ERROR");
+          success = true;
+          //todo: do a thing then send clear command
+        } else if (stackByte > 0){
+          Serial.println("STACK EMPTY");
+          success = true;
+          //todo: some notification
+        } else {
+          Serial.println("general success");
+          success = true;
+        }
+      
+        readDataByte = false;
+      }
+      else if (readByte == 6) {
+        Serial.println("received positive ack");
+         checkForStatus = false;
         //todo: if busy, keep polling status
         //continue;
-      } else if (readByte) {
-        //todo: If error bit, do some display warning like play sound/orb red/something else
-
-        //todo: some sort of display warning
-
-        // Clear Command
-        //Serial1.write(0x30);
-        
-        //break;
-      } else {
-        success = true;
+      } else if (readByte == 3){
+        Serial.println("received 3, next is checksum which well ignore");
+        ignoreNextByte = true;
       }
     }
   }
