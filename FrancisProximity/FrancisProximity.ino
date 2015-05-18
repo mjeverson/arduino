@@ -60,7 +60,7 @@ int eyesBlueLeftStart = 0;
 int eyesGreenRightStart = 0;
 int eyesRedRightStart = 255;
 int eyesBlueRightStart = 0;
-int eyesBrightnessStart = 10;
+int eyesBrightnessStart = 50;
 
 // Game model variables
 //todo: test time calculations
@@ -85,14 +85,6 @@ void setup() {
   command[3] = command[0] ^ command[1] ^ command[2];
   Serial1.write(command, 4);
   Serial.println("sent command to set stop distance");
-//  
-//  while(!Serial1.available()){};
-//  
-//  if (Serial1.available() > 0){
-//    if (Serial1.read() == 6){
-//      Serial.println("Received positive ack from stop distance command");
-//    }
-//  }
 
   // SD Card setup
   if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
@@ -117,10 +109,10 @@ void loop() {
   
   //todo: evaluate recently pressed buttons for easter egg purposes, nyan cat maybe?
   //        track pins pressed in an array, evaluate the array, set 'play easter egg' flag
-
+Serial.println(millis() - baseTime);
   // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
   if (isRoundActive && hasRoundTimedOut()) {
-//    completeRound();
+    completeRound();
   } else {
     listenForTouchInputs();
   }
@@ -133,7 +125,6 @@ void setupTouch() {
   if (!MPR121.begin(MPR121_ADDR)) Serial1.println("error setting up MPR121");
   MPR121.setInterruptPin(MPR121_INT);
 
-  //TODO: Adjust touch sensitivity
   // This is the touch threshold - setting it low makes it more like a proximity trigger. Default value is 40 for touch
   MPR121.setTouchThreshold(2);
 
@@ -156,7 +147,7 @@ void setupMp3() {
 // Crystal ball LED ring setup
 void setupCrystalBall() {
   strip.begin();
-  strip.setBrightness(10);
+  strip.setBrightness(50);
 
   for (int i = 0; i < strip.numPixels(); i++) {
     strip.setPixelColor(i, 0, 0, 0);
@@ -189,7 +180,6 @@ void listenForTouchInputs() {
       // If this is a new touch on this pin
       if (MPR121.isNewTouch(i)) {
         //pin i was touched
-        digitalWrite(LED_BUILTIN, HIGH);
         strip.setBrightness(150);
 
         // Set the round as active and reset the timeout counter
@@ -209,8 +199,7 @@ void listenForTouchInputs() {
         }
       } else if (MPR121.isNewRelease(i)) {
         // Pin i was released
-        digitalWrite(LED_BUILTIN, LOW);
-        strip.setBrightness(10);
+        strip.setBrightness(50);
       }
     }
     //}
@@ -245,20 +234,23 @@ void completeRound() {
 //todo: maybe have it pulse white and only change to the color and get brighter, and freeze on it, with touch?
 // Keep the orb's color shifting and changing
 void updateOrbColor() {
-  if (stripFadeProgress >= 0 && stripFadeProgress < stripFadeRate) {
+  if (stripFadeProgress >= 0 && stripFadeProgress < 20000) {
     // next step of the fade
-    int Gnew = stripGreenStart + (stripGreenEnd - stripGreenStart) * stripFadeProgress / stripFadeRate;
-    int Rnew = stripRedStart + (stripRedEnd - stripRedStart) * stripFadeProgress / stripFadeRate;
-    int Bnew = stripBlueStart + (stripBlueEnd - stripBlueStart) * stripFadeProgress / stripFadeRate;
+    int Gnew = stripGreenStart + (stripGreenEnd - stripGreenStart) * (stripFadeProgress / stripFadeRate);
+    int Rnew = stripRedStart + (stripRedEnd - stripRedStart) * (stripFadeProgress / stripFadeRate);
+    int Bnew = stripBlueStart + (stripBlueEnd - stripBlueStart) * (stripFadeProgress / stripFadeRate);
 
     // set pixel color here
     for (int i = 0; i < strip.numPixels(); i++) {
       strip.setPixelColor(i, Gnew, Rnew, Bnew);
     }
 
-    stripFadeProgress++;
+    stripFadeProgress = stripFadeProgress + 1;
   } else {
     // pick new colors
+    stripGreenStart = stripGreenEnd;
+    stripRedStart = stripRedEnd;
+    stripBlueStart = stripBlueEnd;
     stripGreenEnd = random(0, 255);
     stripRedEnd = random(0, 255);
     stripBlueEnd = random(0, 255);
@@ -272,13 +264,13 @@ void updateOrbColor() {
 
 // Brightens or darkens the orb
 void updateOrbBrightness(bool isCompletingRound) {
-  int brightnessStart = 50;
-  int brightnessEnd = 10;
+  int brightnessStart = 150;
+  int brightnessEnd = 50;
   int rate = 50;
 
   if (isCompletingRound) {
-    brightnessStart = 10;
-    brightnessEnd = 50;
+    brightnessStart = 50;
+    brightnessEnd = 150;
   }
 
   // Larger values of 'rate' will give a smoother/slower transition.
@@ -291,15 +283,15 @@ void updateOrbBrightness(bool isCompletingRound) {
 // Eyes glow pattern
 void updateEyeColor(bool isCompletingRound) {
   // Pick a color for each eye and slowly fade them both, along with brightness
-  int GLeftEnd = 0;
-  int RLeftEnd = 255;
+  int GLeftEnd = 255;
+  int RLeftEnd = 0;
   int BLeftEnd = 0;
   int GRightEnd = 0;
-  int RRightEnd = 255;
-  int BRightEnd = 0;
-  int brightnessStart = 50;
-  int brightnessEnd = 10;
-  int rate = 10;
+  int RRightEnd = 0;
+  int BRightEnd = 255;
+  int brightnessStart = 150;
+  int brightnessEnd = 50;
+  int rate = 500;
 
   if (isCompletingRound) {
     GLeftEnd = random(0, 255);
@@ -308,8 +300,8 @@ void updateEyeColor(bool isCompletingRound) {
     GRightEnd = random(0, 255);
     RRightEnd = random(0, 255);
     BRightEnd = random(0, 255);
-    brightnessStart = 10;
-    brightnessEnd = 50;
+    brightnessStart = 50;
+    brightnessEnd = 150;
   }
 
   // Larger values of 'rate' will give a smoother/slower transition.
@@ -323,19 +315,19 @@ void updateEyeColor(bool isCompletingRound) {
     int BRightNew = eyesBlueRightStart + (BRightEnd - eyesBlueRightStart) * i / rate;
 
     // set pixel color & brightness
-    eyes.setPixelColor(0, GLeftNew, RLeftNew, BLeftNew);
-    eyes.setPixelColor(1, GRightNew, RRightNew, BRightNew);
+    eyes.setPixelColor(0, RLeftNew, GLeftNew, BLeftNew);
+    eyes.setPixelColor(1, RRightNew, GRightNew, BRightNew);
     eyes.setBrightness(brightnessStart + (brightnessEnd - brightnessStart) * i / rate);
   }
 
   eyesGreenLeftStart = GLeftEnd;
   eyesRedLeftStart = RLeftEnd;
   eyesBlueLeftStart = BLeftEnd;
-  eyesGreenLeftStart = GLeftEnd;
-  eyesRedLeftStart = RLeftEnd;
-  eyesBlueLeftStart = BLeftEnd;
+  eyesGreenRightStart = GRightEnd;
+  eyesRedRightStart = RRightEnd;
+  eyesBlueRightStart = BRightEnd;
 
-  strip.show();
+  eyes.show();
 }
 
 // Fire the flame effect
