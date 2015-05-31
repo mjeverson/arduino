@@ -45,14 +45,10 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel eyes = Adafruit_NeoPixel(2, EYESTRIP, NEO_GRB + NEO_KHZ800); //todo: make sure we have the right version - might need different params for the eyes depending
 
 // LED tracking values for the orb and the eyes for fading purposes. Everything starts white.
-int stripFadeRate = 1000;
-int stripGreenStart = 0;
-int stripRedStart = 0;
-int stripBlueStart = 0;
-int stripGreenEnd = 255;
-int stripRedEnd = 255;
-int stripBlueEnd = 255;
 int stripFadeProgress = -1;
+int stripGreen = 0;
+int stripBlue = 0;
+int stripRed = 0;
 
 int eyesGreenLeft = 255;
 int eyesRedLeft = 0;
@@ -149,10 +145,13 @@ void setupMp3() {
 // Crystal ball LED ring setup
 void setupCrystalBall() {
   strip.begin();
+  stripGreen = random(0,255);
+  stripBlue = random(0,255);
+  stripRed = random(0,255);
   strip.setBrightness(50);
 
   for (int i = 0; i < strip.numPixels(); i++) {
-    strip.setPixelColor(i, 0, 0, 0);
+    strip.setPixelColor(i, stripGreen, stripRed, stripBlue);
   }
 
   strip.show();
@@ -233,30 +232,19 @@ void completeRound() {
   resetTimer();
 }
 
-//todo: maybe have it pulse white and only change to the color and get brighter, and freeze on it, with touch?
-// Keep the orb's color shifting and changing
+// update the orb's colors every 5 secs
 void updateOrbColor() {
-  if (stripFadeProgress >= 0 && stripFadeProgress < 20000) {
-    // next step of the fade
-    int Gnew = stripGreenStart + (stripGreenEnd - stripGreenStart) * (stripFadeProgress / stripFadeRate);
-    int Rnew = stripRedStart + (stripRedEnd - stripRedStart) * (stripFadeProgress / stripFadeRate);
-    int Bnew = stripBlueStart + (stripBlueEnd - stripBlueStart) * (stripFadeProgress / stripFadeRate);
-
-    // set pixel color here
-    for (int i = 0; i < strip.numPixels(); i++) {
-      strip.setPixelColor(i, Gnew, Rnew, Bnew);
-      strip.show();
-    }
-
+  if (stripFadeProgress >= 0 && stripFadeProgress < 5000) {
     stripFadeProgress = stripFadeProgress + 1;
   } else {
+    stripRed = random(0,255);
+    stripGreen = random(0,255);
+    stripBlue = random(0,255);
+    
     // pick new colors
-    stripGreenStart = stripGreenEnd;
-    stripRedStart = stripRedEnd;
-    stripBlueStart = stripBlueEnd;
-    stripGreenEnd = random(0, 255);
-    stripRedEnd = random(0, 255);
-    stripBlueEnd = random(0, 255);
+    for (int i = 0; i < strip.numPixels(); i++) {
+      strip.setPixelColor(i, stripGreen, stripRed, stripBlue);
+    }
 
     // flip flag
     stripFadeProgress = 0;
@@ -274,7 +262,7 @@ void updateOrbBrightness(bool isCompletingRound) {
     // Fade
     for (int i = 50; i < 150; i++){
       for (int j = 0; j < strip.numPixels(); j++) {
-        strip.setPixelColor(j, stripGreenStart, stripRedStart, stripBlueStart);
+        strip.setPixelColor(j, stripGreen, stripRed, stripBlue);
       }
         
       strip.setBrightness(i);
@@ -285,7 +273,7 @@ void updateOrbBrightness(bool isCompletingRound) {
     // Fade
     for (int i = 150; i > 50; i--){
       for (int j = 0; j < strip.numPixels(); j++) {
-        strip.setPixelColor(j, stripGreenStart, stripRedStart, stripBlueStart);
+        strip.setPixelColor(j, stripGreen, stripRed, stripBlue);
       }
         
       strip.setBrightness(i);
