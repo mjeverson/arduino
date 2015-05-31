@@ -54,13 +54,13 @@ int stripRedEnd = 255;
 int stripBlueEnd = 255;
 int stripFadeProgress = -1;
 
-int eyesGreenLeftStart = 0;
-int eyesRedLeftStart = 255;
-int eyesBlueLeftStart = 0;
-int eyesGreenRightStart = 0;
-int eyesRedRightStart = 255;
-int eyesBlueRightStart = 0;
-int eyesBrightnessStart = 50;
+int eyesGreenLeft = 255;
+int eyesRedLeft = 0;
+int eyesBlueLeft = 0;
+int eyesGreenRight = 0;
+int eyesRedRight = 0;
+int eyesBlueRight = 255;
+int eyesBrightness = 150;
 
 // Game model variables
 //todo: test time calculations
@@ -95,6 +95,8 @@ void setup() {
   setupCrystalBall();
   setupEyes();
   resetTimer();
+  
+  randomSeed(analogRead(A0));
 }
 
 void loop() { 
@@ -243,6 +245,7 @@ void updateOrbColor() {
     // set pixel color here
     for (int i = 0; i < strip.numPixels(); i++) {
       strip.setPixelColor(i, Gnew, Rnew, Bnew);
+      strip.show();
     }
 
     stripFadeProgress = stripFadeProgress + 1;
@@ -264,70 +267,70 @@ void updateOrbColor() {
 
 // Brightens or darkens the orb
 void updateOrbBrightness(bool isCompletingRound) {
-  int brightnessStart = 150;
-  int brightnessEnd = 50;
-  int rate = 50;
-
+  int brightnessStart = 50;
+  int brightnessEnd = 150;
+  
   if (isCompletingRound) {
-    brightnessStart = 50;
-    brightnessEnd = 150;
-  }
-
-  // Larger values of 'rate' will give a smoother/slower transition.
-  for (int i = 0; i < rate; i++)
-  {
-    strip.setBrightness(brightnessStart + (brightnessEnd - brightnessStart) * i / rate);
+    // Fade
+    for (int i = 50; i < 150; i++){
+      for (int j = 0; j < strip.numPixels(); j++) {
+        strip.setPixelColor(j, stripGreenStart, stripRedStart, stripBlueStart);
+      }
+        
+      strip.setBrightness(i);
+      strip.show();
+      delay(10);
+    } 
+  } else {
+    // Fade
+    for (int i = 150; i > 50; i--){
+      for (int j = 0; j < strip.numPixels(); j++) {
+        strip.setPixelColor(j, stripGreenStart, stripRedStart, stripBlueStart);
+      }
+        
+      strip.setBrightness(i);
+      strip.show();
+      delay(10);
+    } 
   }
 }
 
 // Eyes glow pattern
 void updateEyeColor(bool isCompletingRound) {
-  // Pick a color for each eye and slowly fade them both, along with brightness
-  int GLeftEnd = 255;
-  int RLeftEnd = 0;
-  int BLeftEnd = 0;
-  int GRightEnd = 0;
-  int RRightEnd = 0;
-  int BRightEnd = 255;
-  int brightnessStart = 150;
-  int brightnessEnd = 50;
-  int rate = 500;
-
+  // Fade out
+  for (int i = eyesBrightness; i > 0; i--){
+    eyes.setPixelColor(0, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
+    eyes.setPixelColor(1, eyesRedRight, eyesGreenRight, eyesBlueRight);
+    eyes.setBrightness(i);
+    eyes.show();
+    delay(10);
+  }
+  
+  // Pick new colours
   if (isCompletingRound) {
-    GLeftEnd = random(0, 255);
-    RLeftEnd = random(0, 255);
-    BLeftEnd = random(0, 255);
-    GRightEnd = random(0, 255);
-    RRightEnd = random(0, 255);
-    BRightEnd = random(0, 255);
-    brightnessStart = 50;
-    brightnessEnd = 150;
+    eyesRedLeft = random(0, 255);
+    eyesGreenLeft = random(0, 255);
+    eyesBlueLeft = random(0, 255);
+    eyesRedRight = random(0, 255);
+    eyesGreenRight = random(0, 255);
+    eyesBlueRight = random(0, 255);
+  } else {
+    eyesRedLeft = 0;
+    eyesGreenLeft = 255;
+    eyesBlueLeft = 0;
+    eyesRedRight = 0;
+    eyesGreenRight = 0;
+    eyesBlueRight = 255;
   }
-
-  // Larger values of 'rate' will give a smoother/slower transition.
-  for (int i = 0; i < rate; i++)
-  {
-    int GLeftNew = eyesGreenLeftStart + (GLeftEnd - eyesGreenLeftStart) * i / rate;
-    int RLeftNew = eyesRedLeftStart + (RLeftEnd - eyesRedLeftStart) * i / rate;
-    int BLeftNew = eyesBlueLeftStart + (BLeftEnd - eyesBlueLeftStart) * i / rate;
-    int GRightNew = eyesGreenRightStart + (GRightEnd - eyesGreenRightStart) * i / rate;
-    int RRightNew = eyesRedRightStart + (RRightEnd - eyesRedRightStart) * i / rate;
-    int BRightNew = eyesBlueRightStart + (BRightEnd - eyesBlueRightStart) * i / rate;
-
-    // set pixel color & brightness
-    eyes.setPixelColor(0, RLeftNew, GLeftNew, BLeftNew);
-    eyes.setPixelColor(1, RRightNew, GRightNew, BRightNew);
-    eyes.setBrightness(brightnessStart + (brightnessEnd - brightnessStart) * i / rate);
+  
+  // Fade back in with new colours
+  for (int i = 0; i < eyesBrightness; i++){
+    eyes.setPixelColor(0, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
+    eyes.setPixelColor(1, eyesRedRight, eyesGreenRight, eyesBlueRight);
+    eyes.setBrightness(i);
+    eyes.show();
+    delay(10);
   }
-
-  eyesGreenLeftStart = GLeftEnd;
-  eyesRedLeftStart = RLeftEnd;
-  eyesBlueLeftStart = BLeftEnd;
-  eyesGreenRightStart = GRightEnd;
-  eyesRedRightStart = RRightEnd;
-  eyesBlueRightStart = BRightEnd;
-
-  eyes.show();
 }
 
 // Fire the flame effect
