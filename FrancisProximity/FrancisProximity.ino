@@ -108,9 +108,9 @@ void loop() {
   
   // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
   if (isRoundActive && hasRoundTimedOut()) {
-    completeRound();
+//    completeRound();
   } else {
-    listenForTouchInputs();
+//    listenForTouchInputs();
   }
 }
 
@@ -227,12 +227,21 @@ void completeRound() {
 // update the orb's colors every 5 secs
 void updateOrbColor() {
   if (stripFadeProgress >= 0 && stripFadeProgress < 5000) {
+        float percentProgress = (float)stripFadeProgress / 5000.0;
+        int gProg = ((float)1 - percentProgress) * (float)stripGreen;
+        int rProg = ((float)1 - percentProgress) * (float)stripRed;
+        int bProg = ((float)1 - percentProgress) * (float)stripBlue;
+        
+      for (int i = 0; i < strip.numPixels(); i++) {
+        strip.setPixelColor(i, gProg, rProg, bProg);
+      } 
+    
     stripFadeProgress = stripFadeProgress + 1;
   } else {
     stripRed = random(0,255);
     stripGreen = random(0,255);
     stripBlue = random(0,255);
-    
+
     // pick new colors
     for (int i = 0; i < strip.numPixels(); i++) {
       strip.setPixelColor(i, stripGreen, stripRed, stripBlue);
