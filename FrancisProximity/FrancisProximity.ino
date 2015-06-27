@@ -59,10 +59,11 @@ int eyesBlueRight = 255;
 int eyesBrightness = 150;
 
 // Game model variables
-//todo: test time calculations
 bool isRoundActive = false;           // Whether or not there is a round in play
 unsigned long baseTime = 0;           // The base value of ms to compare against elapsed ms for timeout
-unsigned long roundTimeout = 5000;    // How long to wait after last touch before processing (ms)
+unsigned long originalTime = 0;       // The absolute start time of the round
+unsigned long roundTimeout = 3000;    // How long to wait after last touch before processing (ms)
+unsigned long maxRoundTime = 5000;    // Don't allow the round to go any longer than this
 
 // Get this party started
 void setup() {
@@ -71,7 +72,6 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   
   // Set up the Serial1 communication with the dispenser
-//  todo: may actually need SoftwareSerial1 library if these pins aren't already configured
   Serial.begin(9600);
   Serial1.begin(9600);
   while (!Serial1) ; {} // uncomment when hooked up to Serial1
@@ -91,6 +91,7 @@ void setup() {
   setupCrystalBall();
   setupEyes();
   resetTimer();
+  originalTime = millis();
   
   randomSeed(analogRead(A0));
 }
@@ -105,9 +106,6 @@ void loop() {
   // Fade the orb colors
   updateOrbColor();
   
-  //todo: evaluate recently pressed buttons for easter egg purposes, nyan cat maybe?
-  //        track pins pressed in an array, evaluate the array, set 'play easter egg' flag
-Serial.println(millis() - baseTime);
   // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
   if (isRoundActive && hasRoundTimedOut()) {
     completeRound();
@@ -183,14 +181,14 @@ void listenForTouchInputs() {
         //pin i was touched
         strip.setBrightness(150);
 
-        // Set the round as active and reset the timeout counter
-        isRoundActive = true;
-        resetTimer();
-
-        //todo: instead of stoptrack is there a fade out?
-        //todo: loop sounds while holding instead of play?
-        //todo: don't stop other tracks when touchdown?
-
+        // Set the round as active and reset the timeout counter. Only set the original time if the round is just starting
+        if (!isRoundActive){
+            originalTime = millis();  
+            isRoundActive = true;
+        }
+        
+        resetTimer(
+        );
         // if we're already playing a track, stop that one and play the newly requested one
         if (MP3player.isPlaying()) {
           MP3player.stopTrack();
@@ -213,12 +211,7 @@ void completeRound() {
 
   // Make eyes change colours
   updateEyeColor(true);
-
-  // Make crystal ball get very bright on its current color
-  updateOrbBrightness(true);
-
-  //todo: maybe play some mp3
-
+  
   // fire the flame effect some number of times
   fireSolenoid();
 
@@ -226,7 +219,6 @@ void completeRound() {
   dispenseFortune();
 
   // delay for a bit before resetting everything.
-  delay(5000);
   updateOrbBrightness(false);
   updateEyeColor(false);
   resetTimer();
@@ -317,6 +309,13 @@ void updateEyeColor(bool isCompletingRound) {
     eyes.setPixelColor(1, eyesRedRight, eyesGreenRight, eyesBlueRight);
     eyes.setBrightness(i);
     eyes.show();
+    
+    if (isCompletingRound){
+      strip.setPixelColor(i, stripGreen, stripRed, stripBlue);
+      strip.setBrightness(i);
+      strip.show();
+    }
+    
     delay(10);
   }
 }
@@ -328,22 +327,18 @@ void fireSolenoid() {
   switch (firingSequence) {
     case 1:
       digitalWrite(SOLENOID, HIGH);
-      delay(500);
+      delay(1000);
       digitalWrite(SOLENOID, LOW);
       delay(500);
       digitalWrite(SOLENOID, HIGH);
-      delay(500);
-      digitalWrite(SOLENOID, LOW);
-      delay(500);
-      digitalWrite(SOLENOID, HIGH);
-      delay(500);
+      delay(1000);
       digitalWrite(SOLENOID, LOW);
       break;
     case 2:
       digitalWrite(SOLENOID, HIGH);
       delay(500);
       digitalWrite(SOLENOID, LOW);
-      delay(1000);
+      delay(500);
       digitalWrite(SOLENOID, HIGH);
       delay(500);
       digitalWrite(SOLENOID, LOW);
@@ -354,16 +349,9 @@ void fireSolenoid() {
       break;
     case 3:
       digitalWrite(SOLENOID, HIGH);
-      delay(500);
+      delay(2000);
       digitalWrite(SOLENOID, LOW);
       delay(500);
-      digitalWrite(SOLENOID, HIGH);
-      delay(500);
-      digitalWrite(SOLENOID, LOW);
-      delay(1000);
-      digitalWrite(SOLENOID, HIGH);
-      delay(500);
-      digitalWrite(SOLENOID, LOW);
       break;
     default:
       digitalWrite(SOLENOID, HIGH);
@@ -453,8 +441,6 @@ void dispenseFortune() {
       else if (readByte == 6) {
         Serial.println("received positive ack");
          checkForStatus = false;
-        //todo: if busy, keep polling status
-        //continue;
       } else if (readByte == 3){
         Serial.println("received 3, next is checksum which well ignore");
         ignoreNextByte = true;
@@ -464,7 +450,7 @@ void dispenseFortune() {
 }
 
 bool hasRoundTimedOut() {
-  return  millis() - baseTime > roundTimeout;
+  return  (millis() - baseTime > roundTimeout) || (millis() - originalTime > maxRoundTime);
 }
 
 // Set the baseline value for the timer
