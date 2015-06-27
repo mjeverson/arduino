@@ -80,7 +80,7 @@ void setup() {
   byte command[] = {0x02, 0xF4, 0x03, 0x00};
   command[3] = command[0] ^ command[1] ^ command[2];
   Serial1.write(command, 4);
-  Serial.println("sent command to set stop distance");
+//  Serial.println("sent command to set stop distance");
 
   // SD Card setup
   if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
@@ -108,9 +108,9 @@ void loop() {
   
   // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
   if (isRoundActive && hasRoundTimedOut()) {
-//    completeRound();
+    completeRound();
   } else {
-//    listenForTouchInputs();
+    listenForTouchInputs();
   }
 }
 
@@ -133,11 +133,11 @@ void setupMp3() {
   byte result = MP3player.begin();
   MP3player.setVolume(0, 0);
 
-  if (result != 0) {
-    Serial1.print("Error code: ");
-    Serial1.print(result);
-    Serial1.println(" when trying to start MP3 player");
-  }
+//  if (result != 0) {
+//    Serial1.print("Error code: ");
+//    Serial1.print(result);
+//    Serial1.println(" when trying to start MP3 player");
+//  }
 }
 
 // Crystal ball LED ring setup
@@ -406,12 +406,12 @@ void dispenseFortune() {
     bool ignoreNextByte = false;
 
     while (Serial1.available() > 0) {
-      Serial.println("Got some data from status update");
+//      Serial.println("Got some data from status update");
       byte readByte = Serial1.read();
-      Serial.println(readByte, HEX);
+//      Serial.println(readByte, HEX);
 
       if (ignoreNextByte == true){
-        Serial.println("ignoring checksum");
+//        Serial.println("ignoring checksum");
         ignoreNextByte = false;
         checkForStatus = true;
         //continue;
@@ -420,9 +420,9 @@ void dispenseFortune() {
         Serial.println("received 2, next is data byte");
         readDataByte = true;
       } else if (readDataByte == true){
-        Serial.println("reading data byte");
-        Serial.println(readByte, DEC);
-        Serial.println(readByte, BIN);
+//        Serial.println("reading data byte");
+//        Serial.println(readByte, DEC);
+//        Serial.println(readByte, BIN);
         
         byte busyByte = readByte & B01000000;
         byte motorByte = readByte & B00010000;
@@ -433,25 +433,25 @@ void dispenseFortune() {
           //todo: do nothing
            Serial.println("BUSY");
         } else if (motorByte > 0){
-          Serial.println("MOTOR ERROR");
+//          Serial.println("MOTOR ERROR");
           success = true;
           //todo: do a thing then send clear command
         } else if (stackByte > 0){
-          Serial.println("STACK EMPTY");
+//          Serial.println("STACK EMPTY");
           success = true;
           //todo: some notification
         } else {
-          Serial.println("general success");
+//          Serial.println("general success");
           success = true;
         }
       
         readDataByte = false;
       }
       else if (readByte == 6) {
-        Serial.println("received positive ack");
+//        Serial.println("received positive ack");
          checkForStatus = false;
       } else if (readByte == 3){
-        Serial.println("received 3, next is checksum which well ignore");
+//        Serial.println("received 3, next is checksum which well ignore");
         ignoreNextByte = true;
       }
     }
