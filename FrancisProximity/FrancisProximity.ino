@@ -98,15 +98,15 @@ void setup() {
 
 void loop() { 
   //test fortune dispense on key press
-  if (Serial.available() > 0){
-    Serial.read();
-    dispenseFortune();
-  }
+//  if (Serial.available() > 0){
+//    Serial.read();
+//    dispenseFortune();
+//  }
   
   // Fade the orb colors
   updateOrbColor();
-  
-  // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
+//  
+//  // If sufficient time has passed since the last touch, enter the completion mode, otherwise continue listening
   if (isRoundActive && hasRoundTimedOut()) {
     completeRound();
   } else {
@@ -311,7 +311,7 @@ void updateEyeColor(bool isCompletingRound) {
     eyesGreenRight = 0;
     eyesBlueRight = 255;
   }
-  
+
   // Fade back in with new colours
   for (int i = 0; i < eyesBrightness; i++){
     eyes.setPixelColor(0, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
@@ -320,9 +320,11 @@ void updateEyeColor(bool isCompletingRound) {
     eyes.show();
     
     if (isCompletingRound){
-      strip.setPixelColor(i, stripGreen, stripRed, stripBlue);
-      strip.setBrightness(i);
-      strip.show();
+       for (int j = 0; j < strip.numPixels(); j++) {
+          strip.setPixelColor(j, stripGreen, stripRed, stripBlue);
+          strip.setBrightness(i);
+          strip.show();
+       }
     }
     
     delay(10);
@@ -370,7 +372,7 @@ void fireSolenoid() {
   }
 }
 
-//todo: weird Serial1 magic to trigger the card dispenser
+// trigger the card dispenser
 void dispenseFortune() {
   bool success = false;
   
@@ -414,7 +416,6 @@ void dispenseFortune() {
 //        Serial.println("ignoring checksum");
         ignoreNextByte = false;
         checkForStatus = true;
-        //continue;
       } else if (readByte == 2){
         //start of text
         Serial.println("received 2, next is data byte");
@@ -430,10 +431,9 @@ void dispenseFortune() {
         byte stackByte = readByte & B00000001;  
       
         if (busyByte > 0){
-          //todo: do nothing
            Serial.println("BUSY");
         } else if (motorByte > 0){
-//          Serial.println("MOTOR ERROR");
+          Serial.println("MOTOR ERROR");
           success = true;
           //todo: do a thing then send clear command
         } else if (stackByte > 0){
