@@ -53,9 +53,9 @@ int stripRed = 0;
 int eyesGreenLeft = 255;
 int eyesRedLeft = 0;
 int eyesBlueLeft = 0;
-int eyesGreenRight = 0;
-int eyesRedRight = 0;
-int eyesBlueRight = 255;
+//int eyesGreenRight = 0;
+//int eyesRedRight = 0;
+//int eyesBlueRight = 255;
 int eyesBrightness = 150;
 
 // Game model variables
@@ -70,6 +70,8 @@ void setup() {
   // Set the output pins
   pinMode(SOLENOID, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
+  
+  setupEyes();
   
   // Set up the Serial1 communication with the dispenser
   Serial.begin(9600);
@@ -89,7 +91,6 @@ void setup() {
   setupTouch();
   setupMp3();
   setupCrystalBall();
-  setupEyes();
   resetTimer();
   originalTime = millis();
   
@@ -132,12 +133,6 @@ void setupTouch() {
 void setupMp3() {
   byte result = MP3player.begin();
   MP3player.setVolume(0, 0);
-
-//  if (result != 0) {
-//    Serial1.print("Error code: ");
-//    Serial1.print(result);
-//    Serial1.println(" when trying to start MP3 player");
-//  }
 }
 
 // Crystal ball LED ring setup
@@ -187,8 +182,7 @@ void listenForTouchInputs() {
             isRoundActive = true;
         }
         
-        resetTimer(
-        );
+        resetTimer();
         // if we're already playing a track, stop that one and play the newly requested one
         if (MP3player.isPlaying()) {
           MP3player.stopTrack();
@@ -268,7 +262,7 @@ void updateOrbBrightness(bool isCompletingRound) {
         
       strip.setBrightness(i);
       strip.show();
-      delay(10);
+      delay(5);
     } 
   } else {
     // Fade
@@ -279,7 +273,7 @@ void updateOrbBrightness(bool isCompletingRound) {
         
       strip.setBrightness(i);
       strip.show();
-      delay(10);
+      delay(5);
     } 
   }
 }
@@ -289,10 +283,10 @@ void updateEyeColor(bool isCompletingRound) {
   // Fade out
   for (int i = eyesBrightness; i > 0; i--){
     eyes.setPixelColor(0, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
-    eyes.setPixelColor(1, eyesRedRight, eyesGreenRight, eyesBlueRight);
+    eyes.setPixelColor(1, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
     eyes.setBrightness(i);
     eyes.show();
-    delay(10);
+    delay(5);
   }
   
   // Pick new colours
@@ -300,22 +294,16 @@ void updateEyeColor(bool isCompletingRound) {
     eyesRedLeft = random(0, 255);
     eyesGreenLeft = random(0, 255);
     eyesBlueLeft = random(0, 255);
-    eyesRedRight = random(0, 255);
-    eyesGreenRight = random(0, 255);
-    eyesBlueRight = random(0, 255);
   } else {
     eyesRedLeft = 0;
-    eyesGreenLeft = 255;
-    eyesBlueLeft = 0;
-    eyesRedRight = 0;
-    eyesGreenRight = 0;
-    eyesBlueRight = 255;
+    eyesGreenLeft = 0;
+    eyesBlueLeft = 255;
   }
 
   // Fade back in with new colours
   for (int i = 0; i < eyesBrightness; i++){
     eyes.setPixelColor(0, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
-    eyes.setPixelColor(1, eyesRedRight, eyesGreenRight, eyesBlueRight);
+    eyes.setPixelColor(1, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
     eyes.setBrightness(i);
     eyes.show();
     
@@ -327,7 +315,7 @@ void updateEyeColor(bool isCompletingRound) {
        }
     }
     
-    delay(10);
+    delay(5);
   }
 }
 
@@ -347,15 +335,15 @@ void fireSolenoid() {
       break;
     case 2:
       digitalWrite(SOLENOID, HIGH);
-      delay(500);
+      delay(1000);
       digitalWrite(SOLENOID, LOW);
       delay(500);
       digitalWrite(SOLENOID, HIGH);
-      delay(500);
+      delay(1000);
       digitalWrite(SOLENOID, LOW);
       delay(500);
       digitalWrite(SOLENOID, HIGH);
-      delay(500);
+      delay(1000);
       digitalWrite(SOLENOID, LOW);
       break;
     case 3:
@@ -408,12 +396,9 @@ void dispenseFortune() {
     bool ignoreNextByte = false;
 
     while (Serial1.available() > 0) {
-//      Serial.println("Got some data from status update");
       byte readByte = Serial1.read();
-//      Serial.println(readByte, HEX);
 
       if (ignoreNextByte == true){
-//        Serial.println("ignoring checksum");
         ignoreNextByte = false;
         checkForStatus = true;
       } else if (readByte == 2){
@@ -421,10 +406,6 @@ void dispenseFortune() {
         Serial.println("received 2, next is data byte");
         readDataByte = true;
       } else if (readDataByte == true){
-//        Serial.println("reading data byte");
-//        Serial.println(readByte, DEC);
-//        Serial.println(readByte, BIN);
-        
         byte busyByte = readByte & B01000000;
         byte motorByte = readByte & B00010000;
         byte sensorByte = readByte & B00000100;
