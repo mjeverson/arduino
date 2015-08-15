@@ -53,9 +53,6 @@ int stripRed = 0;
 int eyesGreenLeft = 255;
 int eyesRedLeft = 0;
 int eyesBlueLeft = 0;
-//int eyesGreenRight = 0;
-//int eyesRedRight = 0;
-//int eyesBlueRight = 255;
 int eyesBrightness = 150;
 
 // Game model variables
