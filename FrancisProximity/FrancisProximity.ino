@@ -50,9 +50,9 @@ int stripGreen = 0;
 int stripBlue = 0;
 int stripRed = 0;
 
-int eyesGreenLeft = 255;
-int eyesRedLeft = 0;
-int eyesBlueLeft = 0;
+int eyesGreen = 255;
+int eyesRed = 0;
+int eyesBlue = 0;
 int eyesBrightness = 150;
 
 // Game model variables
@@ -180,13 +180,14 @@ void listenForTouchInputs() {
         }
         
         resetTimer();
+        
         // if we're already playing a track, stop that one and play the newly requested one
         if (MP3player.isPlaying()) {
           MP3player.stopTrack();
-          MP3player.playTrack(i - firstPin);
-        } else {
-          MP3player.playTrack(i - firstPin);
-        }
+        } 
+        
+        MP3player.playTrack(i - firstPin);
+        
       } else if (MPR121.isNewRelease(i)) {
         // Pin i was released
         strip.setBrightness(50);
@@ -279,8 +280,8 @@ void updateOrbBrightness(bool isCompletingRound) {
 void updateEyeColor(bool isCompletingRound) {
   // Fade out
   for (int i = eyesBrightness; i > 0; i--){
-    eyes.setPixelColor(0, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
-    eyes.setPixelColor(1, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
+    eyes.setPixelColor(0, eyesRed, eyesGreen, eyesBlue);
+    eyes.setPixelColor(1, eyesRed, eyesGreen, eyesBlue);
     eyes.setBrightness(i);
     eyes.show();
     delay(5);
@@ -288,19 +289,19 @@ void updateEyeColor(bool isCompletingRound) {
   
   // Pick new colours
   if (isCompletingRound) {
-    eyesRedLeft = random(0, 255);
-    eyesGreenLeft = random(0, 255);
-    eyesBlueLeft = random(0, 255);
+    eyesRed = random(0, 255);
+    eyesGreen = random(0, 255);
+    eyesBlue = random(0, 255);
   } else {
-    eyesRedLeft = 0;
-    eyesGreenLeft = 0;
-    eyesBlueLeft = 255;
+    eyesRed = 0;
+    eyesGreen = 0;
+    eyesBlue = 255;
   }
 
   // Fade back in with new colours
   for (int i = 0; i < eyesBrightness; i++){
-    eyes.setPixelColor(0, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
-    eyes.setPixelColor(1, eyesRedLeft, eyesGreenLeft, eyesBlueLeft);
+    eyes.setPixelColor(0, eyesRed, eyesGreen, eyesBlue);
+    eyes.setPixelColor(1, eyesRed, eyesGreen, eyesBlue);
     eyes.setBrightness(i);
     eyes.show();
     
