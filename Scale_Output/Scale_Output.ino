@@ -67,7 +67,7 @@ void setColor(){
     percentage = 1;
   }
 
-  // There are eight tiers of color
+  // Determine how many pixels to light up and what color "tier" to set
   int activePixels = percentage * totalPixels;
   int colorTier = percentage / (1 / colorTiers);
 
