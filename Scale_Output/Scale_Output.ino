@@ -11,7 +11,6 @@
 HX711 scale(DOUT, CLK);
 int totalPixels = 24; // LEDs in the neopixel ring
 int kegWeightFull = 130; //in lbs, which is what the scale is calibrated to
-int updateFrequency = 1; 
 int dimFactor = 2; // keeps the ratios but dims the brightness of the LED ring
 int colorTiers = 9; // Determines which rgbVal to display based on the weight
 
