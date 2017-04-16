@@ -3,16 +3,16 @@
 
 //TODO: only need one of these, try FastLED
 #include <FastLED.h>
-#include <Adafruit_NeoPixel.h>
+//#include <Adafruit_NeoPixel.h>
 
 //This value is obtained using the SparkFun_HX711_Calibration sketch. Currently calibrated to lbs, previously -9330.0 
 #define calibration_factor -9890.0
 
 #define CLK  A0
 #define DOUT  A1
-#define LED_ALTAR_READY A2
-#define LED_SAFETY_ALTAR A3
-#define LED_SAFETY_TABLE A4
+#define LED_ALTAR_READY_PIN A2
+#define LED_SAFETY_ALTAR_PIN A3
+#define LED_SAFETY_TABLE_PIN A4
 
 #define NUM_ALTAR_READY_LEDS 180
 #define NUM_ALTAR_SAFETY_LEDS 150
@@ -38,7 +38,12 @@ HX711 scale(DOUT, CLK);
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 //Adafruit_NeoPixel altar_ready = Adafruit_NeoPixel(180, LED_ALTAR_READY, NEO_GRB + NEO_KHZ800);
 //Adafruit_NeoPixel altar_safety = Adafruit_NeoPixel(150, LED_SAFETY_ALTAR, NEO_GRB + NEO_KHZ800); 
-Adafruit_NeoPixel table_safety = Adafruit_NeoPixel(300, LED_SAFETY_TABLE, NEO_GRB + NEO_KHZ800); 
+//Adafruit_NeoPixel table_safety = Adafruit_NeoPixel(300, LED_SAFETY_TABLE, NEO_GRB + NEO_KHZ800); 
+
+//FASTLED Code
+CRGBArray<NUM_ALTAR_READY_LEDS> altar_ready_strip;
+CRGBArray<NUM_ALTAR_SAFETY_LEDS> altar_safety_strip;
+CRGBArray<NUM_TABLE_SAFETY_LEDS> table_safety_strip;
 
 void setup() {
   Serial.begin(9600);
@@ -63,11 +68,16 @@ void setup() {
 
   //altar_ready.begin();
   //altar_safety.begin();
-  table_safety.begin();
+//  table_safety.begin();
 
   //altar_ready.show();
   //altar_safety.show();
-  table_safety.show();
+//  table_safety.show();
+
+  FastLED.addLeds<NEOPIXEL, LED_SAFETY_TABLE_PIN>(table_safety_strip, NUM_TABLE_SAFETY_LEDS);
+
+  FastLED.clear();
+  FastLED.show();
 }
 
 void loop() {
@@ -81,13 +91,15 @@ void loop() {
 //           altar_ready.setPixelColor(i, 0, 0, 125);
     }
     
-    
-      table_safety.setPixelColor(i, 0, 0, 0);
+      table_safety_strip[i] = CRGB::Red; 
+//    table_safety.setPixelColor(i, 0, 0, 0);
   }
+  
+  FastLED.show();
 
   //altar_ready.show();
   //altar_safety.show();
-  table_safety.show();
+//  table_safety.show();
   
   //scale.get_units() returns a float
   Serial.print(scale.get_units(), 1); 
