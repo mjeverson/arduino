@@ -37,7 +37,7 @@
 
 static inline __attribute__ ((always_inline)) void sendBitX8( uint8_t bits ) {
 
-    const uint8_t onBits = 0xff;          // We need to send all bits on on all pins as the first 1/3 of the encoded bits
+    const uint8_t onBits = 0x1F;//0xff;          // We need to send all bits on on all pins as the first 1/3 of the encoded bits
             
     asm volatile (
       

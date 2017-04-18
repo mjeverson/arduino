@@ -6,7 +6,7 @@
 
 // Change this to be at least as long as your pixel string (too long will work fine, just be a little slower)
 
-#define PIXELS 300  // Number of pixels in the string
+#define PIXELS 96*11  // Number of pixels in the string
 
 // These values depend on which pin your string is connected to and what board you are using 
 // More info on how to find these at http://www.arduino.cc/en/Reference/PortManipulation
@@ -24,9 +24,8 @@
 #define PIXEL_PORT  PORTC  // Port of the pin the pixels are connected to
 #define PIXEL_DDR   DDRC   // Port of the pin the pixels are connected to
 #define PIXEL_BIT2   2      // Bit of the pin the pixels are connected to
-#define PIXEL_BIT3   3
-#define PIXEL_BIT4   4
-//todo: try hex value of the byte we want for multiple bits?
+#define PIXEL_BIT3   3      // Bit of the pin the pixels are connected to
+#define PIXEL_BIT4   4      // Bit of the pin the pixels are connected to
 
 // These are the timing constraints taken mostly from the WS2812 datasheets 
 // These are chosen to be conservative and avoid problems rather than for maximum throughput 
@@ -53,50 +52,157 @@
 // not reorder things and make it so the delay happens in the wrong place.
 
 inline void sendBit( bool bitVal ) {
-  const uint8_t onBits = 0xff;          // We need to send all bits on on all pins as the first 1/3 of the encoded bits
-    if (  bitVal ) {				// 0 bit
+  
+    if (  bitVal ) {        // 0 bit
       
-		asm volatile (
-			"sbi %[port], %[bit] \n\t"				// Set the output bit
-			".rept %[onCycles] \n\t"                                // Execute NOPs to delay exactly the specified number of cycles
-			"nop \n\t"
-			".endr \n\t"
-			"cbi %[port], %[bit] \n\t"                              // Clear the output bit
-			".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
-			"nop \n\t"
-			".endr \n\t"
-			::
-			[port]		"I" (_SFR_IO_ADDR(PIXEL_PORT)),
-			[bit]		"I" (PIXEL_BIT4),
-			[onCycles]	"I" (NS_TO_CYCLES(T1H) - 2),		// 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
-			[offCycles] 	"I" (NS_TO_CYCLES(T1L) - 2)			// Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
+    asm volatile (
+      "sbi %[port], %[bit] \n\t"        // Set the output bit
+      ".rept %[onCycles] \n\t"                                // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"
+      ".endr \n\t"
+      "cbi %[port], %[bit] \n\t"                              // Clear the output bit
+      ".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"
+      ".endr \n\t"
+      ::
+      [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
+      [bit]   "I" (PIXEL_BIT2),
+      [onCycles]  "I" (NS_TO_CYCLES(T1H) - 2),    // 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
+      [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)     // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
 
-		);
-
+    );
                                   
-    } else {					// 1 bit
+    } else {          // 1 bit
 
-		// **************************************************************************
-		// This line is really the only tight goldilocks timing in the whole program!
-		// **************************************************************************
+    // **************************************************************************
+    // This line is really the only tight goldilocks timing in the whole program!
+    // **************************************************************************
 
 
-		asm volatile (
-			"sbi %[port], %[bit] \n\t"				// Set the output bit
-			".rept %[onCycles] \n\t"				// Now timing actually matters. The 0-bit must be long enough to be detected but not too long or it will be a 1-bit
-			"nop \n\t"                                              // Execute NOPs to delay exactly the specified number of cycles
-			".endr \n\t"
-			"cbi %[port], %[bit] \n\t"                              // Clear the output bit
-			".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
-			"nop \n\t"
-			".endr \n\t"
-			::
-			[port]		"I" (_SFR_IO_ADDR(PIXEL_PORT)),
-			[bit]		"I" (PIXEL_BIT4),
-			[onCycles]	"I" (NS_TO_CYCLES(T0H) - 2),
-			[offCycles]	"I" (NS_TO_CYCLES(T0L) - 2)
+    asm volatile (
+      "sbi %[port], %[bit] \n\t"        // Set the output bit
+      ".rept %[onCycles] \n\t"        // Now timing actually matters. The 0-bit must be long enough to be detected but not too long or it will be a 1-bit
+      "nop \n\t"                                              // Execute NOPs to delay exactly the specified number of cycles
+      ".endr \n\t"
+      "cbi %[port], %[bit] \n\t"                              // Clear the output bit
+      ".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"
+      ".endr \n\t"
+      ::
+      [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
+      [bit]   "I" (PIXEL_BIT2),
+      [onCycles]  "I" (NS_TO_CYCLES(T0H) - 2),
+      [offCycles] "I" (NS_TO_CYCLES(T0L) - 2)
 
-		);
+    );
+      
+    }
+    
+    // Note that the inter-bit gap can be as long as you want as long as it doesn't exceed the 5us reset timeout (which is A long time)
+    // Here I have been generous and not tried to squeeze the gap tight but instead erred on the side of lots of extra time.
+    // This has thenice side effect of avoid glitches on very long strings becuase 
+
+    
+}  
+
+inline void sendBit3( bool bitVal ) {
+  
+    if (  bitVal ) {        // 0 bit
+      
+    asm volatile (
+      "sbi %[port], %[bit] \n\t"        // Set the output bit
+      ".rept %[onCycles] \n\t"                                // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"
+      ".endr \n\t"
+      "cbi %[port], %[bit] \n\t"                              // Clear the output bit
+      ".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"
+      ".endr \n\t"
+      ::
+      [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
+      [bit]   "I" (PIXEL_BIT3),
+      [onCycles]  "I" (NS_TO_CYCLES(T1H) - 2),    // 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
+      [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)     // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
+
+    );
+                                  
+    } else {          // 1 bit
+
+    // **************************************************************************
+    // This line is really the only tight goldilocks timing in the whole program!
+    // **************************************************************************
+
+
+    asm volatile (
+      "sbi %[port], %[bit] \n\t"        // Set the output bit
+      ".rept %[onCycles] \n\t"        // Now timing actually matters. The 0-bit must be long enough to be detected but not too long or it will be a 1-bit
+      "nop \n\t"                                              // Execute NOPs to delay exactly the specified number of cycles
+      ".endr \n\t"
+      "cbi %[port], %[bit] \n\t"                              // Clear the output bit
+      ".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"
+      ".endr \n\t"
+      ::
+      [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
+      [bit]   "I" (PIXEL_BIT3),
+      [onCycles]  "I" (NS_TO_CYCLES(T0H) - 2),
+      [offCycles] "I" (NS_TO_CYCLES(T0L) - 2)
+
+    );
+      
+    }
+    
+    // Note that the inter-bit gap can be as long as you want as long as it doesn't exceed the 5us reset timeout (which is A long time)
+    // Here I have been generous and not tried to squeeze the gap tight but instead erred on the side of lots of extra time.
+    // This has thenice side effect of avoid glitches on very long strings becuase 
+
+    
+}  
+
+inline void sendBit4( bool bitVal ) {
+  
+    if (  bitVal ) {        // 0 bit
+      
+    asm volatile (
+      "sbi %[port], %[bit] \n\t"        // Set the output bit
+      ".rept %[onCycles] \n\t"                                // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"
+      ".endr \n\t"
+      "cbi %[port], %[bit] \n\t"                              // Clear the output bit
+      ".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"
+      ".endr \n\t"
+      ::
+      [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
+      [bit]   "I" (PIXEL_BIT4),
+      [onCycles]  "I" (NS_TO_CYCLES(T1H) - 2),    // 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
+      [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)     // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
+
+    );
+                                  
+    } else {          // 1 bit
+
+    // **************************************************************************
+    // This line is really the only tight goldilocks timing in the whole program!
+    // **************************************************************************
+
+
+    asm volatile (
+      "sbi %[port], %[bit] \n\t"        // Set the output bit
+      ".rept %[onCycles] \n\t"        // Now timing actually matters. The 0-bit must be long enough to be detected but not too long or it will be a 1-bit
+      "nop \n\t"                                              // Execute NOPs to delay exactly the specified number of cycles
+      ".endr \n\t"
+      "cbi %[port], %[bit] \n\t"                              // Clear the output bit
+      ".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"
+      ".endr \n\t"
+      ::
+      [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
+      [bit]   "I" (PIXEL_BIT4),
+      [onCycles]  "I" (NS_TO_CYCLES(T0H) - 2),
+      [offCycles] "I" (NS_TO_CYCLES(T0L) - 2)
+
+    );
       
     }
     
@@ -112,7 +218,10 @@ inline void sendByte( unsigned char byte ) {
     
     for( unsigned char bit = 0 ; bit < 8 ; bit++ ) {
       
-      sendBit( bitRead( byte , 7 ) );                // Neopixel wants bit in highest-to-lowest order
+      sendBit( bitRead( byte , 7 ) ); 
+      sendBit3( bitRead( byte , 7 ) ); 
+      sendBit4( bitRead( byte , 7 ) ); 
+                                                      // Neopixel wants bit in highest-to-lowest order
                                                      // so send highest bit (bit #7 in an 8-bit byte since they start at 0)
       byte <<= 1;                                    // and then shift left so bit 6 moves into 7, 5 moves into 6, etc
       
@@ -132,14 +241,16 @@ inline void sendByte( unsigned char byte ) {
 // Set the specified pin up as digital out
 
 void ledsetup() {
-  
 
+  // https://www.arduino.cc/en/Reference/bitSet
+  bitSet( PIXEL_DDR , PIXEL_BIT2 );
+  bitSet( PIXEL_DDR , PIXEL_BIT3 );
   bitSet( PIXEL_DDR , PIXEL_BIT4 );
   
 }
 
 inline void sendPixel( unsigned char r, unsigned char g , unsigned char b )  {  
-  
+
   sendByte(g);          // Neopixel wants colors in green then red then blue order
   sendByte(r);
   sendByte(b);
@@ -150,7 +261,7 @@ inline void sendPixel( unsigned char r, unsigned char g , unsigned char b )  {
 // Just wait long enough without sending any bots to cause the pixels to latch and display the last sent frame
 
 void show() {
-	_delay_us( (RES / 1000UL) + 1);				// Round up since the delay must be _at_least_ this long (too short might not work, too long not a problem)
+  _delay_us( (RES / 1000UL) + 1);       // Round up since the delay must be _at_least_ this long (too short might not work, too long not a problem)
 }
 
 
@@ -181,29 +292,6 @@ void showColor( unsigned char r , unsigned char g , unsigned char b ) {
   sei();
   show();
   
-}
-
-// Fill the dots one after the other with a color
-// rewrite to lift the compare out of the loop
-void colorWipe(unsigned char r , unsigned char g, unsigned char b, unsigned  char wait ) {
-  for(unsigned int i=0; i<PIXELS; i+= (PIXELS/60) ) {
-    
-    cli();
-    unsigned int p=0;
-    
-    while (p++<=i) {
-        sendPixel(r,g,b);
-    } 
-     
-    while (p++<=PIXELS) {
-        sendPixel(0,0,0);  
-      
-    }
-    
-    sei();
-    show();
-    delay(wait);
-  }
 }
 
 // Theatre-style crawling lights.
@@ -249,108 +337,18 @@ void theaterChase( unsigned char r , unsigned char g, unsigned char b, unsigned 
   }
   
 }
-        
-
-
-// I rewrite this one from scrtach to use high resolution for the color wheel to look nicer on a *much* bigger string
-                                                                            
-void rainbowCycle(unsigned char frames , unsigned int frameAdvance, unsigned int pixelAdvance ) {
-  
-  // Hue is a number between 0 and 3*256 than defines a mix of r->g->b where
-  // hue of 0 = Full red
-  // hue of 128 = 1/2 red and 1/2 green
-  // hue of 256 = Full Green
-  // hue of 384 = 1/2 green and 1/2 blue
-  // ...
-  
-  unsigned int firstPixelHue = 0;     // Color for the first pixel in the string
-  
-  for(unsigned int j=0; j<frames; j++) {                                  
-    
-    unsigned int currentPixelHue = firstPixelHue;
-       
-    cli();    
-        
-    for(unsigned int i=0; i< PIXELS; i++) {
-      
-      if (currentPixelHue>=(3*256)) {                  // Normalize back down incase we incremented and overflowed
-        currentPixelHue -= (3*256);
-      }
-            
-      unsigned char phase = currentPixelHue >> 8;
-      unsigned char step = currentPixelHue & 0xff;
-                 
-      switch (phase) {
-        
-        case 0: 
-          sendPixel( ~step , step ,  0 );
-          break;
-          
-        case 1: 
-          sendPixel( 0 , ~step , step );
-          break;
-
-        case 2: 
-          sendPixel(  step ,0 , ~step );
-          break;
-          
-      }
-      
-      currentPixelHue+=pixelAdvance;                                      
-      
-                          
-    } 
-    
-    sei();
-    
-    show();
-    
-    firstPixelHue += frameAdvance;
-           
-  }
-}
-
-  
-// I added this one just to demonstrate how quickly you can flash the string.
-// Flashes get faster and faster until *boom* and fade to black.
-
-void detonate( unsigned char r , unsigned char g , unsigned char b , unsigned int startdelayms) {
-  while (startdelayms) {
-    
-    showColor( r , g , b );      // Flash the color 
-    showColor( 0 , 0 , 0 );
-    
-    delay( startdelayms );      
-    
-    startdelayms =  ( startdelayms * 4 ) / 5 ;           // delay between flashes is halved each time until zero
-    
-  }
-  
-  // Then we fade to black....
-  
-  for( int fade=256; fade>0; fade-- ) {
-    
-    showColor( (r * fade) / 256 ,(g*fade) /256 , (b*fade)/256 );
-        
-  }
-  
-  showColor( 0 , 0 , 0 );
-  
-    
-}
 
 void setup() {
     
   ledsetup();  
-  //PIXEL_DDR = 0xff;    // Set all row pins to output
+  
 }
 
 
 void loop() {
-  theaterChase(127, 127, 127, 0);
-  //rainbowCycle(1000 , 20 , 5 );
-  
+
+  theaterChase(127,   0,   0, 0); // Red
+
   return;
   
 }
-

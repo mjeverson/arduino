@@ -42,7 +42,7 @@ HX711 scale(DOUT, CLK);
 
 //todo: very memory intensive, can we get an SD card for variable memory or something?
 //FASTLED Code
-CRGBArray<1> altar_ready_strip;
+CRGBArray<180> altar_ready_strip;
 CRGBArray<1> altar_safety_strip;
 CRGBArray<1> table_safety_strip;
 
