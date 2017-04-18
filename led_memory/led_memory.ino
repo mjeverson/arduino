@@ -214,15 +214,18 @@ inline void sendBit4( bool bitVal ) {
 }  
 
   
-inline void sendByte( unsigned char byte ) {
+inline void sendByte( unsigned char byte, int strand ) {
     
     for( unsigned char bit = 0 ; bit < 8 ; bit++ ) {
-      
-      sendBit( bitRead( byte , 7 ) ); 
-      sendBit3( bitRead( byte , 7 ) ); 
-      sendBit4( bitRead( byte , 7 ) ); 
-                                                      // Neopixel wants bit in highest-to-lowest order
-                                                     // so send highest bit (bit #7 in an 8-bit byte since they start at 0)
+
+      if (strand == 0){
+        sendBit( bitRead( byte , 7 ) );
+      } else if (strand == 1){
+        sendBit3( bitRead( byte , 7 ) );
+      } else if (strand == 2){ 
+        sendBit4( bitRead( byte , 7 ) );
+      } 
+                                                      // Neopixel wants bit in highest-to-lowest order                                              // so send highest bit (bit #7 in an 8-bit byte since they start at 0)
       byte <<= 1;                                    // and then shift left so bit 6 moves into 7, 5 moves into 6, etc
       
     }           
@@ -249,11 +252,11 @@ void ledsetup() {
   
 }
 
-inline void sendPixel( unsigned char r, unsigned char g , unsigned char b )  {  
+inline void sendPixel( unsigned char r, unsigned char g , unsigned char b, int strand )  {  
 
-  sendByte(g);          // Neopixel wants colors in green then red then blue order
-  sendByte(r);
-  sendByte(b);
+  sendByte(g, strand);          // Neopixel wants colors in green then red then blue order
+  sendByte(r, strand);
+  sendByte(b, strand);
   
 }
 
@@ -281,19 +284,6 @@ void show() {
 */
 
 
-// Display a single color on the whole string
-
-void showColor( unsigned char r , unsigned char g , unsigned char b ) {
-  
-  cli();  
-  for( int p=0; p<PIXELS; p++ ) {
-    sendPixel( r , g , b );
-  }
-  sei();
-  show();
-  
-}
-
 // Theatre-style crawling lights.
 // Changes spacing to be dynmaic based on string size
 
@@ -313,11 +303,11 @@ void theaterChase( unsigned char r , unsigned char g, unsigned char b, unsigned 
         
         if (step==q) {
           
-          sendPixel( r , g , b );
+          sendPixel( r , g , b, 0 );
           
         } else {
           
-          sendPixel( 0 , 0 , 0 );
+          sendPixel( 0 , 0 , 0, 0);
           
         }
         
@@ -328,7 +318,53 @@ void theaterChase( unsigned char r , unsigned char g, unsigned char b, unsigned 
       }
       
       sei();
+      show();
+
+      //todo: doing this to avoid timing issues?
+      cli();
       
+      for (int i=0; i < PIXELS ; i++) {
+        
+        if (step==q) {
+          
+          sendPixel( r , g , b, 1 );
+          
+        } else {
+          
+          sendPixel( 0 , 0 , 0, 1 );
+          
+        }
+        
+        step++;
+        
+        if (step==THEATER_SPACING) step =0;
+        
+      }
+      
+      sei();
+      show();
+
+      cli();
+      
+      for (int i=0; i < PIXELS ; i++) {
+        
+        if (step==q) {
+          
+          sendPixel( r , g , b, 2 );
+          
+        } else {
+          
+          sendPixel( 0 , 0 , 0, 2);
+          
+        }
+        
+        step++;
+        
+        if (step==THEATER_SPACING) step =0;
+        
+      }
+      
+      sei();
       show();
       delay(wait);
       
