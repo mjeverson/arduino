@@ -66,7 +66,7 @@ inline void sendBit( bool bitVal ) {
       ".endr \n\t"
       ::
       [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
-      [bit]   "I" (PIXEL_BIT2),
+      [bit]   "I" (2),
       [onCycles]  "I" (NS_TO_CYCLES(T1H) - 2),    // 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
       [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)     // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
 
@@ -90,7 +90,7 @@ inline void sendBit( bool bitVal ) {
       ".endr \n\t"
       ::
       [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
-      [bit]   "I" (PIXEL_BIT2),
+      [bit]   "I" (2),
       [onCycles]  "I" (NS_TO_CYCLES(T0H) - 2),
       [offCycles] "I" (NS_TO_CYCLES(T0L) - 2)
 
@@ -317,12 +317,7 @@ void theaterChase( unsigned char r , unsigned char g, unsigned char b, unsigned 
         
       }
       
-      sei();
-      show();
-
-      //todo: doing this to avoid timing issues?
-      cli();
-      
+      //number 2
       for (int i=0; i < PIXELS ; i++) {
         
         if (step==q) {
@@ -341,11 +336,7 @@ void theaterChase( unsigned char r , unsigned char g, unsigned char b, unsigned 
         
       }
       
-      sei();
-      show();
-
-      cli();
-      
+      // number 3
       for (int i=0; i < PIXELS ; i++) {
         
         if (step==q) {
