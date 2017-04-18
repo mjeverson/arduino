@@ -6,7 +6,7 @@
 
 // Change this to be at least as long as your pixel string (too long will work fine, just be a little slower)
 
-#define PIXELS 300//96*11  // Number of pixels in the string
+#define PIXELS 300  // Number of pixels in the string
 
 // These values depend on which pin your string is connected to and what board you are using 
 // More info on how to find these at http://www.arduino.cc/en/Reference/PortManipulation
@@ -14,16 +14,19 @@
 // These values are for the pin that connects to the Data Input pin on the LED strip. They correspond to...
 
 // Arduino Yun:     Digital Pin 8
-// DueMilinove/UNO: Digital Pin 12 
+// DueMilinove/UNO: Digital Pin 12
 // Arduino MeagL    PWM Pin 4
 
 // You'll need to look up the port/bit combination for other boards. 
 
 // Note that you could also include the DigitalWriteFast header file to not need to to this lookup.
 
-#define PIXEL_PORT  PORTC//this is for analog pins PORTB  // Port of the pin the pixels are connected to
-#define PIXEL_DDR   DDRC//this is for analog pins DDRB   // Port of the pin the pixels are connected to
-#define PIXEL_BIT   2//todo:mike: pc0 = A0, pb4 = digital pin 12 on the uno 4      // Bit of the pin the pixels are connected to
+#define PIXEL_PORT  PORTC  // Port of the pin the pixels are connected to
+#define PIXEL_DDR   DDRC   // Port of the pin the pixels are connected to
+#define PIXEL_BIT2   2      // Bit of the pin the pixels are connected to
+#define PIXEL_BIT3   3
+#define PIXEL_BIT4   4
+//todo: try hex value of the byte we want for multiple bits?
 
 // These are the timing constraints taken mostly from the WS2812 datasheets 
 // These are chosen to be conservative and avoid problems rather than for maximum throughput 
@@ -50,7 +53,7 @@
 // not reorder things and make it so the delay happens in the wrong place.
 
 inline void sendBit( bool bitVal ) {
-  
+  const uint8_t onBits = 0xff;          // We need to send all bits on on all pins as the first 1/3 of the encoded bits
     if (  bitVal ) {				// 0 bit
       
 		asm volatile (
@@ -64,11 +67,12 @@ inline void sendBit( bool bitVal ) {
 			".endr \n\t"
 			::
 			[port]		"I" (_SFR_IO_ADDR(PIXEL_PORT)),
-			[bit]		"I" (PIXEL_BIT),
+			[bit]		"d" (0xff),
 			[onCycles]	"I" (NS_TO_CYCLES(T1H) - 2),		// 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
 			[offCycles] 	"I" (NS_TO_CYCLES(T1L) - 2)			// Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
 
 		);
+
                                   
     } else {					// 1 bit
 
@@ -88,7 +92,7 @@ inline void sendBit( bool bitVal ) {
 			".endr \n\t"
 			::
 			[port]		"I" (_SFR_IO_ADDR(PIXEL_PORT)),
-			[bit]		"I" (PIXEL_BIT),
+			[bit]		"d" (0xff),
 			[onCycles]	"I" (NS_TO_CYCLES(T0H) - 2),
 			[offCycles]	"I" (NS_TO_CYCLES(T0L) - 2)
 
@@ -129,7 +133,8 @@ inline void sendByte( unsigned char byte ) {
 
 void ledsetup() {
   
-  bitSet( PIXEL_DDR , PIXEL_BIT );
+
+  bitSet( PIXEL_DDR , PIXEL_BIT4 );
   
 }
 
@@ -336,30 +341,16 @@ void detonate( unsigned char r , unsigned char g , unsigned char b , unsigned in
 
 void setup() {
     
-  ledsetup();  
-  
+  //ledsetup();  
+  PIXEL_DDR = 0xff;    // Set all row pins to output
 }
 
 
 void loop() {
-
-  // Some example procedures showing how to display to the pixels:
-  colorWipe(255, 0, 0, 0); // Red
-  colorWipe(0, 255, 0, 0); // Green
-  colorWipe(0, 0, 255, 0); // Blue
-  
-  // Send a theater pixel chase in...
-  theaterChase(127, 127, 127, 0); // White
-  theaterChase(127,   0,   0, 0); // Red
-  theaterChase(  0,   0, 127, 0); // Blue
-  
-  rainbowCycle(1000 , 20 , 5 );
-  detonate( 255 , 255 , 255 , 1000);
+  theaterChase(127, 127, 127, 0);
+//  rainbowCycle(1000 , 20 , 5 );
   
   return;
   
 }
 
-//todo: test if this works with each individual strand
-//todo: modify code to accept a pixel bit, test with all three strands together
-//todo: do we need more power supplies?
