@@ -6,7 +6,7 @@
 
 // Change this to be at least as long as your pixel string (too long will work fine, just be a little slower)
 
-#define PIXELS 96*11  // Number of pixels in the string
+#define PIXELS 300  // Number of pixels in the string
 
 // These values depend on which pin your string is connected to and what board you are using 
 // More info on how to find these at http://www.arduino.cc/en/Reference/PortManipulation
