@@ -44,40 +44,97 @@ void setup() {
 
   ledsetup();  
   setSafetyLighting();
+  resetAltarLighting();
 
   Tlc.init();
-  Tlc.clear();
-  Tlc.update();
+  flameOff();
 
   scale.set_scale(calibration_factor); 
   scale.tare();  
 }
 
 void loop() {
+  // Debug
   Serial.print(scale.get_units());
   Serial.println();
   
   // Button reads inverted because we're using the internal pullup resistor
   if (!digitalRead(GO_BUTTON)){
-    // Go time! Start listening to the scale
-    
-    // Do some nice LED prep stuff to show the altar is reading/waiting
+    // Go time! Do some nice LED prep stuff to show the altar is reading/waiting
     beginAltarCountdown();
     
-    //TODO: Wait for a few seconds, then take a scale reading
+    // Take a scale reading and trigger some fire and lights
     evaluateOffering();
-  } else if (!digitalRead(SPELL_BUTTON)) {
-    // Invoking the great old ones
-    castSpell();
-  } else {
-    // Reset the altar to default lighting
-    //TODO: May just be able to do this in setup, since power will be killed to the arduino when the deadman is released, and then maybe just reset once after the evaluation is done
+
     resetAltarLighting();
+  } else if (!digitalRead(SPELL_BUTTON)) {
+    // Invoke the great old ones
+    castSpell();
   }
+
+  // Always make sure fire is off unless we're actively doing something
+  flameOff();
 }
 
+// Sets the altar lights in a pattern that indicates it's listening, 
 void beginAltarCountdown(){
-  //TODO: Sets the altar lights in a pattern that indicates it's listening, 5s?
+  setAltarListenLighting();
+  
+  //TODO: Delay for an appropriate amount of time, 5s?
+}
+
+void castSpell() {
+  //TODO: Custom spell fire and light pattern
+}
+
+// Make fire and lights happen based on the scale reading!
+// Effects 0-6 are from right-to-left while facing the altar
+void evaluateOffering() {  
+  //TODO: Add in an element of random chance, but should always be the best when over a certain threshold
+  //Maybe have it so there are set tiers, but by chance you can be bumped one or more tiers?
+  long willOfTheCat = random(0,100);
+  
+  //TODO: Evaluate the weight thresholds and response patterns
+  if (scale.get_units() > 100) {
+    // Flame on!
+    fireOutsideIn();
+  } else if(scale.get_units() <= 100 && scale.get_units() > 80) {
+    outerFlames();
+    middleFlames();
+    innerFlames();
+  } else if(scale.get_units() <= 80 && scale.get_units() > 60) {
+    outerFlames();
+    middleFlames();
+  } else if(scale.get_units() <= 60 && scale.get_units() > 40) {
+    outerFlames();
+  } else {
+    //TODO: whomp whomp 
+  }
+
+  // Flame off!
+  flameOff(); 
+}
+
+// Light patterns
+void setSafetyLighting(){
+  cli();
+
+  //TODO: Try messing around with the timing here so we can set this in a single loop
+  // Currently we seem to need the overhead of the loop to handle the bit timing for a second strand
+  for (int i=0; i < ALTAR_SAFETY_PIXELS; i++) {
+    sendPixel(127, 0, 0, ALTAR_SAFETY_PIXEL_BIT);
+  }
+
+  for (int i=0; i < TABLE_SAFETY_PIXELS; i++) {
+    sendPixel(127, 0, 0, TABLE_SAFETY_PIXEL_BIT);
+  }
+
+  sei();
+  show();
+}
+
+void setAltarListenLighting(){
+  // TODO: Should take about 5s? how long should our delay be?
   for (int i=0; i < ALTAR_READY_PIXELS; i++) {
     cli();
     
@@ -99,38 +156,6 @@ void beginAltarCountdown(){
   }
 }
 
-void castSpell() {
-  //TODO: Custom spell fire and light pattern
-}
-
-void evaluateOffering() {
-  //TODO: Make fire and lights happen based on the scale reading!
-  
-  if (scale.get_units() > 100) {
-    Tlc.set(0, TLC_ON); // Flame on!
-  } else {
-    Tlc.set(0, TLC_OFF); // Flame off!
-  }
-  
-  Tlc.update();
-}
-
-void setSafetyLighting(){
-  cli();
-
-  //TODO: Try messing around with the timing here so we can set this in a single loop
-  for (int i=0; i < ALTAR_SAFETY_PIXELS; i++) {
-    sendPixel(127, 0, 0, ALTAR_SAFETY_PIXEL_BIT);
-  }
-
-  for (int i=0; i < TABLE_SAFETY_PIXELS; i++) {
-    sendPixel(127, 0, 0, TABLE_SAFETY_PIXEL_BIT);
-  }
-
-  sei();
-  show();
-}
-
 void resetAltarLighting(){
   cli();
   
@@ -141,6 +166,65 @@ void resetAltarLighting(){
   
   sei();
   show();
+}
+
+// Fire patterns
+void fireOutsideIn(){
+  outerFlames();
+  middleFlames();
+  innerFlames();
+  catFlames();
+}
+
+void outerFlames(){
+  Tlc.set(0, TLC_ON); 
+  Tlc.set(6, TLC_ON); 
+  Tlc.update();
+  
+  delay(500);
+  
+  Tlc.set(0, TLC_OFF); 
+  Tlc.set(6, TLC_OFF);
+  Tlc.update();
+}
+
+void middleFlames(){
+  Tlc.set(1, TLC_ON); 
+  Tlc.set(5, TLC_ON); 
+  Tlc.update();
+  
+  delay(500);
+  
+  Tlc.set(1, TLC_OFF); 
+  Tlc.set(5, TLC_OFF);
+  Tlc.update();
+}
+
+void innerFlames(){
+  Tlc.set(2, TLC_ON); 
+  Tlc.set(4, TLC_ON); 
+  Tlc.update();
+  
+  delay(500);
+  
+  Tlc.set(2, TLC_OFF); 
+  Tlc.set(4, TLC_OFF);
+  Tlc.update();
+}
+
+void catFlames(){
+  Tlc.set(3, TLC_ON);
+  Tlc.update();
+   
+  delay(1000);
+  
+  Tlc.set(3, TLC_OFF);
+  Tlc.update();
+}
+
+void flameOff(){
+  Tlc.clear();
+  Tlc.update();
 }
 
 
