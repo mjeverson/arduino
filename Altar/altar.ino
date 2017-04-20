@@ -43,7 +43,7 @@ void setup() {
   digitalWrite(SPELL_SWITCH, HIGH);
 
   ledsetup();  
-  engageSafetyLighting();
+  setSafetyLighting();
 
   Tlc.init();
   Tlc.clear();
@@ -54,6 +54,9 @@ void setup() {
 }
 
 void loop() {
+  Serial.print(scale.get_units());
+  Serial.println();
+  
   // Button reads inverted because we're using the internal pullup resistor
   if (!digitalRead(GO_BUTTON)){
     // Go time! Start listening to the scale
@@ -66,12 +69,34 @@ void loop() {
   } else if (!digitalRead(SPELL_BUTTON)) {
     // Invoking the great old ones
     castSpell();
+  } else {
+    // Reset the altar to default lighting
+    resetAltarLighting();
   }
-  
 }
 
 void beginAltarCountdown(){
   //TODO: Sets the altar lights in a pattern that indicates it's listening, 5s?
+  for (int i=0; i < ALTAR_READY_PIXELS; i++) {
+    cli();
+    
+    //TODO: Altar's "evaluating" light patterns
+    // For every pixel, update the entire strand 
+    int p = 0;
+    
+    while (p++ <= i) {
+        sendPixel(0, 0, 127, ALTAR_READY_PIXEL_BIT);
+    } 
+     
+    while (p++ <= ALTAR_READY_PIXELS) {
+        sendPixel(127, 127, 127, ALTAR_READY_PIXEL_BIT);  
+      
+    }
+
+    sei();
+    show();    
+    delay(10);
+  }
 }
 
 void castSpell() {
@@ -90,7 +115,7 @@ void evaluateOffering() {
   Tlc.update();
 }
 
-void engageSafetyLighting(){
+void setSafetyLighting(){
   cli();
 
   //TODO: Try messing around with the timing here so we can set this in a single loop
@@ -102,14 +127,22 @@ void engageSafetyLighting(){
     sendPixel(127, 0, 0, TABLE_SAFETY_PIXEL_BIT);
   }
 
+  sei();
+  show();
+}
+
+void resetAltarLighting(){
+  cli();
+  
   for (int i=0; i < ALTAR_READY_PIXELS; i++) {
     //TODO: do something nice like make the lights fade in here
     sendPixel(127, 127, 127, ALTAR_READY_PIXEL_BIT);
   }
-
+  
   sei();
   show();
 }
+
 
 // **************************************************************************
 // LED API
@@ -136,7 +169,7 @@ void engageSafetyLighting(){
 
 // Actually send a bit to the string. We must to drop to asm to ensure that the compiler does
 // not reorder things and make it so the delay happens in the wrong place.
-inline void sendBit(bool bitVal, int strand) {
+inline void sendAltarReadyBit(bool bitVal) {
   if (bitVal) {        
     // 0 bit
     asm volatile (
@@ -150,7 +183,7 @@ inline void sendBit(bool bitVal, int strand) {
       ".endr \n\t"
       ::
       [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
-      [bit]   "I" (strand),
+      [bit]   "I" (ALTAR_READY_PIXEL_BIT),
       [onCycles]  "I" (NS_TO_CYCLES(T1H) - 2),    // 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
       [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)   // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
     );
@@ -172,7 +205,7 @@ inline void sendBit(bool bitVal, int strand) {
       ".endr \n\t"
       ::
       [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
-      [bit]   "I" (strand),
+      [bit]   "I" (ALTAR_READY_PIXEL_BIT),
       [onCycles]  "I" (NS_TO_CYCLES(T0H) - 2),
       [offCycles] "I" (NS_TO_CYCLES(T0L) - 2)
 
@@ -186,41 +219,31 @@ inline void sendBit(bool bitVal, int strand) {
 }  
 
 //TODO: There has to be a way to get rid of these guys.
-inline void sendBit3( bool bitVal ) {
-  
-    if (  bitVal ) {        // 0 bit
-      
+inline void sendAltarSafetyBit(bool bitVal) {
+  if (bitVal) {
     asm volatile (
       "sbi %[port], %[bit] \n\t"        // Set the output bit
-      ".rept %[onCycles] \n\t"                                // Execute NOPs to delay exactly the specified number of cycles
+      ".rept %[onCycles] \n\t"          // Execute NOPs to delay exactly the specified number of cycles
       "nop \n\t"
       ".endr \n\t"
-      "cbi %[port], %[bit] \n\t"                              // Clear the output bit
-      ".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
+      "cbi %[port], %[bit] \n\t"        // Clear the output bit
+      ".rept %[offCycles] \n\t"         // Execute NOPs to delay exactly the specified number of cycles
       "nop \n\t"
       ".endr \n\t"
       ::
       [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
       [bit]   "I" (ALTAR_SAFETY_PIXEL_BIT),
       [onCycles]  "I" (NS_TO_CYCLES(T1H) - 2),    // 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
-      [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)     // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
-
-    );
-                                  
-    } else {          // 1 bit
-
-    // **************************************************************************
-    // This line is really the only tight goldilocks timing in the whole program!
-    // **************************************************************************
-
-
+      [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)   // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
+    );                            
+  } else {          
     asm volatile (
-      "sbi %[port], %[bit] \n\t"        // Set the output bit
+      "sbi %[port], %[bit] \n\t"      // Set the output bit
       ".rept %[onCycles] \n\t"        // Now timing actually matters. The 0-bit must be long enough to be detected but not too long or it will be a 1-bit
-      "nop \n\t"                                              // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"                      // Execute NOPs to delay exactly the specified number of cycles
       ".endr \n\t"
-      "cbi %[port], %[bit] \n\t"                              // Clear the output bit
-      ".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
+      "cbi %[port], %[bit] \n\t"      // Clear the output bit
+      ".rept %[offCycles] \n\t"       // Execute NOPs to delay exactly the specified number of cycles
       "nop \n\t"
       ".endr \n\t"
       ::
@@ -228,53 +251,35 @@ inline void sendBit3( bool bitVal ) {
       [bit]   "I" (ALTAR_SAFETY_PIXEL_BIT),
       [onCycles]  "I" (NS_TO_CYCLES(T0H) - 2),
       [offCycles] "I" (NS_TO_CYCLES(T0L) - 2)
-
-    );
-      
-    }
-    
-    // Note that the inter-bit gap can be as long as you want as long as it doesn't exceed the 5us reset timeout (which is A long time)
-    // Here I have been generous and not tried to squeeze the gap tight but instead erred on the side of lots of extra time.
-    // This has thenice side effect of avoid glitches on very long strings becuase 
-
-    
+    );   
+  }
 }  
 
-inline void sendBit4( bool bitVal ) {
-  
-    if (  bitVal ) {        // 0 bit
-      
+inline void sendTableSafetyBit(bool bitVal) {
+  if (bitVal) {
     asm volatile (
       "sbi %[port], %[bit] \n\t"        // Set the output bit
-      ".rept %[onCycles] \n\t"                                // Execute NOPs to delay exactly the specified number of cycles
+      ".rept %[onCycles] \n\t"          // Execute NOPs to delay exactly the specified number of cycles
       "nop \n\t"
       ".endr \n\t"
-      "cbi %[port], %[bit] \n\t"                              // Clear the output bit
-      ".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
+      "cbi %[port], %[bit] \n\t"        // Clear the output bit
+      ".rept %[offCycles] \n\t"         // Execute NOPs to delay exactly the specified number of cycles
       "nop \n\t"
       ".endr \n\t"
       ::
       [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
       [bit]   "I" (TABLE_SAFETY_PIXEL_BIT),
       [onCycles]  "I" (NS_TO_CYCLES(T1H) - 2),    // 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
-      [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)     // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
-
-    );
-                                  
-    } else {          // 1 bit
-
-    // **************************************************************************
-    // This line is really the only tight goldilocks timing in the whole program!
-    // **************************************************************************
-
-
+      [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)   // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
+    );                            
+  } else {          
     asm volatile (
-      "sbi %[port], %[bit] \n\t"        // Set the output bit
+      "sbi %[port], %[bit] \n\t"      // Set the output bit
       ".rept %[onCycles] \n\t"        // Now timing actually matters. The 0-bit must be long enough to be detected but not too long or it will be a 1-bit
-      "nop \n\t"                                              // Execute NOPs to delay exactly the specified number of cycles
+      "nop \n\t"                      // Execute NOPs to delay exactly the specified number of cycles
       ".endr \n\t"
-      "cbi %[port], %[bit] \n\t"                              // Clear the output bit
-      ".rept %[offCycles] \n\t"                               // Execute NOPs to delay exactly the specified number of cycles
+      "cbi %[port], %[bit] \n\t"      // Clear the output bit
+      ".rept %[offCycles] \n\t"       // Execute NOPs to delay exactly the specified number of cycles
       "nop \n\t"
       ".endr \n\t"
       ::
@@ -282,32 +287,23 @@ inline void sendBit4( bool bitVal ) {
       [bit]   "I" (TABLE_SAFETY_PIXEL_BIT),
       [onCycles]  "I" (NS_TO_CYCLES(T0H) - 2),
       [offCycles] "I" (NS_TO_CYCLES(T0L) - 2)
-
-    );
-      
-    }
-    
-    // Note that the inter-bit gap can be as long as you want as long as it doesn't exceed the 5us reset timeout (which is A long time)
-    // Here I have been generous and not tried to squeeze the gap tight but instead erred on the side of lots of extra time.
-    // This has thenice side effect of avoid glitches on very long strings becuase 
-
-    
+    );   
+  }
 }  
 
 inline void sendByte( unsigned char byte, int strand ) {
     //TODO: There has to be a better way than having a different function for each pixel_bit
+    //TODO: Get a weird impossible constraint in 'asm' error 
     for( unsigned char bit = 0 ; bit < 8 ; bit++ ) {
-      
       if (strand == ALTAR_READY_PIXEL_BIT){
-        //TODO: If this works, why doesn't calling it with different params?
-        //TODO: If this doesn't work, go back to hardcoding the bit we're sending to asm
-        sendBit(bitRead(byte, 7), ALTAR_READY_PIXEL_BIT);
+        // If this works, why doesn't parameterizing it?
+        sendAltarReadyBit(bitRead(byte, 7));
       } else if (strand == ALTAR_SAFETY_PIXEL_BIT){
-        sendBit3(bitRead(byte, 7));
+        sendAltarSafetyBit(bitRead(byte, 7));
       } else if (strand == TABLE_SAFETY_PIXEL_BIT){ 
-        sendBit4(bitRead(byte, 7));
+        sendTableSafetyBit(bitRead(byte, 7));
       } 
-      
+
       // Neopixel wants bit in highest-to-lowest order, so send highest bit (bit #7 in an 8-bit byte since they start at 0)                                                                                 
       // and then shift left so bit 6 moves into 7, 5 moves into 6, etc
       byte <<= 1;                                   
