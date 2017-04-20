@@ -71,6 +71,7 @@ void loop() {
     castSpell();
   } else {
     // Reset the altar to default lighting
+    //TODO: May just be able to do this in setup, since power will be killed to the arduino when the deadman is released, and then maybe just reset once after the evaluation is done
     resetAltarLighting();
   }
 }
@@ -89,10 +90,9 @@ void beginAltarCountdown(){
     } 
      
     while (p++ <= ALTAR_READY_PIXELS) {
-        sendPixel(127, 127, 127, ALTAR_READY_PIXEL_BIT);  
-      
+        sendPixel(127, 127, 127, ALTAR_READY_PIXEL_BIT);   
     }
-
+    
     sei();
     show();    
     delay(10);
