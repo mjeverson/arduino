@@ -1,3 +1,11 @@
+// state 1, just safety lighting
+// state 2, deadman on, pulsing white center altar
+// state 3 go button -> theater lighting around the outside three times, 3-5s 
+// then turn solid white while reading the scale and doing the fire
+// then after the fire everything including the safety lighting to fade out
+// finally, safety lighting fade back in and altar goes back to pulsing white
+// state 4, spell button - for now, fire random solenoids, center altar goes solid white?
+
 #include <HX711.h>
 #include <Tlc5940.h>
 
