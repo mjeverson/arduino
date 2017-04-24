@@ -22,10 +22,15 @@
 // Bit of the pins the pixels are connected to (see LED API below)
 #define ALTAR_READY_PIXEL_BIT 2      
 #define ALTAR_SAFETY_PIXEL_BIT 3    
-#define TABLE_SAFETY_PIXEL_BIT 4    
+#define TABLE_SAFETY_PIXEL_BIT 4   
+ 
+#define FADE_SPEED 10 
+int safetyColors[3] = {127, 0, 0};
+int readyColors[3] = {127, 127, 127};
+int globalFadeLevel = 255;
+bool globalFadeIn;
 
-// Pins the scale is using
-//TODO: Does the scale still work with the LED code hooked up? Shouldn't we need to use the CLK pin? 
+// Pins the scale is using. Note, we're not actually using CLK for the clock pin, which is odd. Does it only work because of the crystal on the dmxfire?
 #define CLK  A0
 #define DOUT  A1
 
@@ -51,8 +56,7 @@ void setup() {
   digitalWrite(SPELL_SWITCH, HIGH);
 
   ledsetup();  
-  setSafetyLighting();
-  resetAltarLighting();
+  fadeLightingIn();
 
   Tlc.init();
   flameOff();
@@ -69,26 +73,33 @@ void loop() {
   // Button reads inverted because we're using the internal pullup resistor
   if (!digitalRead(GO_BUTTON)){
     // Go time! Do some nice LED prep stuff to show the altar is reading/waiting
-    beginAltarCountdown();
+    setAltarListenLighting();
     
     // Take a scale reading and trigger some fire and lights
     evaluateOffering();
 
-    resetAltarLighting();
+    // Fade all lights out, then fade back in
+    fadeLightingOutThenIn();
+
+    delay(2000);
   } else if (!digitalRead(SPELL_BUTTON)) {
     // Invoke the great old ones
+    fadeStrandIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
+    
     castSpell();
+    
+    delay(1000);
+    
+    fadeAltarReadyOutThenIn();
+
+    delay(2000);
+  } else {
+    // Pulsate the white light on the altar, track with a global factor each loop and reset when you do anything    
+    doAltarReadyPulse();
   }
 
   // Always make sure fire is off unless we're actively doing something
   flameOff();
-}
-
-// Sets the altar lights in a pattern that indicates it's listening, 
-void beginAltarCountdown(){
-  setAltarListenLighting();
-  
-  //TODO: Delay for an appropriate amount of time, 5s?
 }
 
 void castSpell() {
@@ -96,87 +107,149 @@ void castSpell() {
 }
 
 // Make fire and lights happen based on the scale reading!
-// Effects 0-6 are from right-to-left while facing the altar
 void evaluateOffering() {  
-  //TODO: Add in an element of random chance, but should always be the best when over a certain threshold
-  //Maybe have it so there are set tiers, but by chance you can be bumped one or more tiers?
-  long willOfTheCat = random(0,100);
-  
-  //TODO: Evaluate the weight thresholds and response patterns
-  if (scale.get_units() > 100) {
+  // Add in an element of random chance, but should always be the best when over a certain threshold
+  long willOfTheCat = random(0, 100);
+
+  //TODO: Test out good weight and random thresholds, maybe revisit the patterns with trish
+  // Evaluate the weight thresholds and response patterns
+  if (scale.get_units() > 100 || willOfTheCat > 95) {
     // Flame on!
     fireOutsideIn();
-  } else if(scale.get_units() <= 100 && scale.get_units() > 80) {
+  } else if((scale.get_units() <= 100 && scale.get_units() > 70) || willOfTheCat > 90) {
     outerFlames();
     middleFlames();
     innerFlames();
-  } else if(scale.get_units() <= 80 && scale.get_units() > 60) {
+  } else if((scale.get_units() <= 70 && scale.get_units() > 50) || willOfTheCat > 85) {
     outerFlames();
     middleFlames();
-  } else if(scale.get_units() <= 60 && scale.get_units() > 40) {
+  } else if((scale.get_units() <= 50 && scale.get_units() > 30) || willOfTheCat > 80) {
     outerFlames();
   } else {
-    //TODO: whomp whomp 
+    catFlames();
   }
 
   // Flame off!
   flameOff(); 
 }
 
-// Light patterns
-void setSafetyLighting(){
-  cli();
-
-  //TODO: Try messing around with the timing here so we can set this in a single loop
-  // Currently we seem to need the overhead of the loop to handle the bit timing for a second strand
-  for (int i=0; i < ALTAR_SAFETY_PIXELS; i++) {
-    sendPixel(127, 0, 0, ALTAR_SAFETY_PIXEL_BIT);
-  }
-
-  for (int i=0; i < TABLE_SAFETY_PIXELS; i++) {
-    sendPixel(127, 0, 0, TABLE_SAFETY_PIXEL_BIT);
-  }
-
-  sei();
-  show();
-}
-
+// Sets the altar lights in a pattern that indicates it's listening, 
 void setAltarListenLighting(){
+  // Theatre lighting around the outside three times
+  theaterChase(127, 127, 127, 0, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS, 3);
   // TODO: Should take about 5s? how long should our delay be?
-  for (int i=0; i < ALTAR_READY_PIXELS; i++) {
-    cli();
-    
-    //TODO: Altar's "evaluating" light patterns
-    // For every pixel, update the entire strand 
-    int p = 0;
-    
-    while (p++ <= i) {
-        sendPixel(0, 0, 127, ALTAR_READY_PIXEL_BIT);
+  
+  fadeStrandIn(127, 127, 127, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
+}
+
+void doAltarReadyPulse(){
+  if (globalFadeLevel >= 255) {
+    globalFadeIn = false;
+  } else if (globalFadeLevel <= 1) {
+    globalFadeIn = true;     
+  }
+
+  if (globalFadeIn){
+    globalFadeLevel++;
+  } else {
+    globalFadeLevel--;
+  }
+
+  float factor = globalFadeLevel / 255;
+  showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
+  delay(FADE_SPEED);
+}
+
+// Theatre-style crawling lights. Changes spacing to be dynamic based on string size
+void theaterChase(unsigned char r, unsigned char g, unsigned char b, unsigned char wait, int strand, int num_pixels, int loops) {
+  int theatre_spacing = num_pixels / 20;
+  
+  for (int j = 0; j < loops ; j++) {   
+    for (int q = 0; q < theatre_spacing ; q++) {   
+      unsigned int step = 0;
+      
+      cli();
+      
+      for (int i=0; i < num_pixels ; i++) {
+        if (step == q) {
+          sendPixel( r , g , b, strand);
+        } else {
+          sendPixel( 0 , 0 , 0, strand);
+        }
+        
+        step++;
+        
+        if (step == theatre_spacing) step = 0;
+      }
+      
+      sei();
+      show();
+      delay(wait);
     } 
-     
-    while (p++ <= ALTAR_READY_PIXELS) {
-        sendPixel(127, 127, 127, ALTAR_READY_PIXEL_BIT);   
-    }
-    
-    sei();
-    show();    
-    delay(10);
+  } 
+}
+
+void fadeLightingOutThenIn() {  
+  fadeLightingOut();
+  delay(3000);
+  fadeLightingIn();
+}
+
+void fadeStrandOutThenIn(int colors[], int strand, int num_pixels) {  
+  fadeStrandOut(colors, strand, num_pixels);
+  delay(3000);
+  fadeStrandIn(colors, strand, num_pixels);
+}
+
+void fadeLightingOut() {  
+  for (uint8_t b = 255; b > 0; b--) {
+    float factor = b / 255;
+    showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
+    showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, ALTAR_SAFETY_PIXEL_BIT, ALTAR_SAFETY_PIXELS);
+    showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, TABLE_SAFETY_PIXEL_BIT, TABLE_SAFETY_PIXELS);
+    delay(FADE_SPEED);
   }
 }
 
-void resetAltarLighting(){
-  cli();
+void fadeLightingIn() {  
+  for (uint8_t b = 0; b < 255; b++) {
+    float factor = b / 255;
+    showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
+    showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, ALTAR_SAFETY_PIXEL_BIT, ALTAR_SAFETY_PIXELS);
+    showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, TABLE_SAFETY_PIXEL_BIT, TABLE_SAFETY_PIXELS);
+    delay(FADE_SPEED);
+  }
+}
+
+void fadeStrandIn(int colors[], int strand, int num_pixels) {  
+  for (uint8_t b = 0; b < 255; b++) {
+    float factor = b / 255;
+    showColor(colors[0] * factor, colors[1] * factor, colors[2] * factor, strand, num_pixels);
+    delay(FADE_SPEED);
+  }
+}
+
+void fadeStrandOut(int strand, int num_pixels) {  
+  for (uint8_t b = 255; b > 0; b--) {
+    float factor = b / 255;
+    showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, strand, num_pixels);
+    delay(FADE_SPEED);
+  }
+}
+
+// Display a single color on the whole string
+void showColor(unsigned char r, unsigned char g, unsigned char b, int strand, int num_pixels) {
+  cli();  
   
-  for (int i=0; i < ALTAR_READY_PIXELS; i++) {
-    //TODO: do something nice like make the lights fade in here
-    sendPixel(127, 127, 127, ALTAR_READY_PIXEL_BIT);
+  for(int p = 0; p < num_pixels; p++) {
+    sendPixel(r, g, b, strand);
   }
   
   sei();
   show();
 }
 
-// Fire patterns
+// Fire patterns. Effects 0-6 are from right-to-left while facing the altar
 void fireOutsideIn(){
   outerFlames();
   middleFlames();
@@ -385,7 +458,7 @@ inline void sendTableSafetyBit(bool bitVal) {
 
 inline void sendByte( unsigned char byte, int strand ) {
     //TODO: There has to be a better way than having a different function for each pixel_bit
-    //TODO: Get a weird impossible constraint in 'asm' error 
+    //TODO: Get a weird "impossible constraint in 'asm'" error 
     for( unsigned char bit = 0 ; bit < 8 ; bit++ ) {
       if (strand == ALTAR_READY_PIXEL_BIT){
         // If this works, why doesn't parameterizing it?
