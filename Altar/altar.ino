@@ -1,11 +1,3 @@
-// state 1, just safety lighting
-// state 2, deadman on, pulsing white center altar
-// state 3 go button -> theater lighting around the outside three times, 3-5s 
-// then turn solid white while reading the scale and doing the fire
-// then after the fire everything including the safety lighting to fade out
-// finally, safety lighting fade back in and altar goes back to pulsing white
-// state 4, spell button - for now, fire random solenoids, center altar goes solid white?
-
 #include <HX711.h>
 #include <Tlc5940.h>
 
@@ -90,7 +82,7 @@ void loop() {
     
     delay(1000);
     
-    fadeAltarReadyOutThenIn();
+    fadeStrandOutThenIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
 
     delay(2000);
   } else {
@@ -103,7 +95,24 @@ void loop() {
 }
 
 void castSpell() {
-  //TODO: Custom spell fire and light pattern
+  //TODO: Custom lights?
+  //TODO: Test this to make sure it looks nice
+  // Custom spell fire pattern
+  long numberOfEffects = random(5, 10);
+
+  for (int i = 0; i < numberOfEffects; i++){
+    long effectNumber = random(0, 6);  
+
+     Tlc.set(effectNumber, TLC_ON); 
+     Tlc.update();
+  
+     delay(500);
+  
+     Tlc.set(effectNumber, TLC_OFF); 
+     Tlc.update();
+  }
+
+  candleFlames();
 }
 
 // Make fire and lights happen based on the scale reading!
@@ -111,22 +120,24 @@ void evaluateOffering() {
   // Add in an element of random chance, but should always be the best when over a certain threshold
   long willOfTheCat = random(0, 100);
 
-  //TODO: Test out good weight and random thresholds, maybe revisit the patterns with trish
   // Evaluate the weight thresholds and response patterns
   if (scale.get_units() > 100 || willOfTheCat > 95) {
     // Flame on!
     fireOutsideIn();
+    candleFlames();
   } else if((scale.get_units() <= 100 && scale.get_units() > 70) || willOfTheCat > 90) {
-    outerFlames();
-    middleFlames();
-    innerFlames();
+    fireOutsideIn();
   } else if((scale.get_units() <= 70 && scale.get_units() > 50) || willOfTheCat > 85) {
     outerFlames();
     middleFlames();
+    innerFlames();
   } else if((scale.get_units() <= 50 && scale.get_units() > 30) || willOfTheCat > 80) {
     outerFlames();
+    middleFlames();
+  } else if((scale.get_units() <= 30 && scale.get_units() > 10) || willOfTheCat > 75) {
+    outerFlames();
   } else {
-    catFlames();
+    catScoff();
   }
 
   // Flame off!
@@ -135,11 +146,10 @@ void evaluateOffering() {
 
 // Sets the altar lights in a pattern that indicates it's listening, 
 void setAltarListenLighting(){
-  // Theatre lighting around the outside three times
-  theaterChase(127, 127, 127, 0, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS, 3);
   // TODO: Should take about 5s? how long should our delay be?
-  
-  fadeStrandIn(127, 127, 127, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
+  // Theatre lighting around the outside three times
+  theaterChase(readyColors[0], readyColors[1], readyColors[2], 0, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS, 3);
+  fadeStrandIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
 }
 
 void doAltarReadyPulse(){
@@ -229,10 +239,10 @@ void fadeStrandIn(int colors[], int strand, int num_pixels) {
   }
 }
 
-void fadeStrandOut(int strand, int num_pixels) {  
+void fadeStrandOut(int colors[], int strand, int num_pixels) {  
   for (uint8_t b = 255; b > 0; b--) {
     float factor = b / 255;
-    showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, strand, num_pixels);
+    showColor(colors[0] * factor, colors[1] * factor, colors[2] * factor, strand, num_pixels);
     delay(FADE_SPEED);
   }
 }
@@ -257,16 +267,26 @@ void fireOutsideIn(){
   catFlames();
 }
 
+void candleFlames() {
+  Tlc.set(0, TLC_ON);
+  Tlc.set(1, TLC_ON);
+  Tlc.set(2, TLC_ON);
+  Tlc.set(4, TLC_ON);
+  Tlc.set(5, TLC_ON);
+  Tlc.set(6, TLC_ON);
+  Tlc.update();
+
+  delay(500);
+  flameOff();
+}
+
 void outerFlames(){
   Tlc.set(0, TLC_ON); 
   Tlc.set(6, TLC_ON); 
   Tlc.update();
   
   delay(500);
-  
-  Tlc.set(0, TLC_OFF); 
-  Tlc.set(6, TLC_OFF);
-  Tlc.update();
+  flameOff();
 }
 
 void middleFlames(){
@@ -275,10 +295,7 @@ void middleFlames(){
   Tlc.update();
   
   delay(500);
-  
-  Tlc.set(1, TLC_OFF); 
-  Tlc.set(5, TLC_OFF);
-  Tlc.update();
+  flameOff();
 }
 
 void innerFlames(){
@@ -287,20 +304,23 @@ void innerFlames(){
   Tlc.update();
   
   delay(500);
-  
-  Tlc.set(2, TLC_OFF); 
-  Tlc.set(4, TLC_OFF);
-  Tlc.update();
+  flameOff();
 }
 
 void catFlames(){
   Tlc.set(3, TLC_ON);
   Tlc.update();
    
-  delay(1000);
-  
-  Tlc.set(3, TLC_OFF);
+  delay(1500);
+  flameOff();
+}
+
+void catScoff(){
+  Tlc.set(3, TLC_ON);
   Tlc.update();
+   
+  delay(500);
+  flameOff();
 }
 
 void flameOff(){
