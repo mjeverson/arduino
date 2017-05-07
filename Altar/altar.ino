@@ -120,6 +120,7 @@ void evaluateOffering() {
   // Add in an element of random chance, but should always be the best when over a certain threshold
   long willOfTheCat = random(0, 100);
 
+  //TODO: Probably want to reduce the thresholds, still do >100 or so for max effort, but give everything a better probability. Average offering probably won't be very heavy and we want moar fire.
   // Evaluate the weight thresholds and response patterns
   if (scale.get_units() > 100 || willOfTheCat > 95) {
     // Flame on!
