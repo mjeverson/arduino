@@ -17,6 +17,7 @@
 #define TABLE_SAFETY_PIXEL_BIT 4   
  
 #define FADE_SPEED 5
+#define PULSE_SPEED 8
 float safetyColors[3] = {127, 0, 0};
 float readyColors[3] = {127, 127, 127};
 float globalFadeLevel = 255;
@@ -64,10 +65,10 @@ void loop() {
  
   // Button reads inverted because we're using the internal pullup resistor
   if (!digitalRead(GO_BUTTON)){
-    Serial.print("GO!");
-    Serial.println();
     // Go time! Do some nice LED prep stuff to show the altar is reading/waiting
     setAltarListenLighting();
+    
+    delay(2000);
     
     // Take a scale reading and trigger some fire and lights
     evaluateOffering();
@@ -77,8 +78,6 @@ void loop() {
 
     delay(2000);
   } else if (!digitalRead(SPELL_BUTTON)) {
-     Serial.print("SPELL!");
-    Serial.println();
     // Invoke the great old ones
     fadeStrandIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
     
@@ -100,7 +99,6 @@ void loop() {
 
 void castSpell() {
   //TODO: Custom lights?
-  //TODO: Test this to make sure it looks nice
   // Custom spell fire pattern
   long numberOfEffects = random(5, 10);
 
@@ -165,9 +163,9 @@ void doAltarReadyPulse(){
   }
 
   if (globalFadeIn){
-    globalFadeLevel++;
+    globalFadeLevel += PULSE_SPEED;
   } else {
-    globalFadeLevel--;
+    globalFadeLevel -= PULSE_SPEED;
   }
 
   float factor = globalFadeLevel / 255.0;
@@ -176,7 +174,7 @@ void doAltarReadyPulse(){
 
 // Theatre-style crawling lights. Changes spacing to be dynamic based on string size
 void theaterChase(unsigned char r, unsigned char g, unsigned char b, unsigned char wait, int strand, int num_pixels, int loops) {
-  int theatre_spacing = num_pixels / 20;
+  int theatre_spacing = num_pixels / 10;
   
   for (int j = 0; j < loops ; j++) {   
     for (int q = 0; q < theatre_spacing ; q++) {   
@@ -275,7 +273,7 @@ void candleFlames() {
   Tlc.set(5, TLC_ON);
   Tlc.set(6, TLC_ON);
   Tlc.update();
-  delay(500);
+  delay(1000);
   
   flameOff();
   delay(500);
