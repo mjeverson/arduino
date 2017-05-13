@@ -16,10 +16,10 @@
 #define ALTAR_SAFETY_PIXEL_BIT 3    
 #define TABLE_SAFETY_PIXEL_BIT 4   
  
-#define FADE_SPEED 10 
-int safetyColors[3] = {127, 0, 0};
-int readyColors[3] = {127, 127, 127};
-int globalFadeLevel = 255;
+#define FADE_SPEED 5
+float safetyColors[3] = {127, 0, 0};
+float readyColors[3] = {127, 127, 127};
+float globalFadeLevel = 255;
 bool globalFadeIn;
 
 // Pins the scale is using. Note, we're not actually using CLK for the clock pin, which is odd. Does it only work because of the crystal on the dmxfire?
@@ -64,6 +64,8 @@ void loop() {
   
   // Button reads inverted because we're using the internal pullup resistor
   if (!digitalRead(GO_BUTTON)){
+    Serial.print("GO!");
+    Serial.println();
     // Go time! Do some nice LED prep stuff to show the altar is reading/waiting
     setAltarListenLighting();
     
@@ -75,6 +77,8 @@ void loop() {
 
     delay(2000);
   } else if (!digitalRead(SPELL_BUTTON)) {
+     Serial.print("SPELL!");
+    Serial.println();
     // Invoke the great old ones
     fadeStrandIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
     
@@ -168,7 +172,6 @@ void doAltarReadyPulse(){
 
   float factor = globalFadeLevel / 255;
   showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
-  delay(FADE_SPEED);
 }
 
 // Theatre-style crawling lights. Changes spacing to be dynamic based on string size
@@ -206,45 +209,54 @@ void fadeLightingOutThenIn() {
   fadeLightingIn();
 }
 
-void fadeStrandOutThenIn(int colors[], int strand, int num_pixels) {  
+void fadeStrandOutThenIn(float colors[], int strand, int num_pixels) {  
   fadeStrandOut(colors, strand, num_pixels);
   delay(3000);
   fadeStrandIn(colors, strand, num_pixels);
 }
 
 void fadeLightingOut() {  
-  for (uint8_t b = 255; b > 0; b--) {
+  for (float b = 255; b > 0; b -= FADE_SPEED) {
     float factor = b / 255;
     showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
     showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, ALTAR_SAFETY_PIXEL_BIT, ALTAR_SAFETY_PIXELS);
     showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, TABLE_SAFETY_PIXEL_BIT, TABLE_SAFETY_PIXELS);
-    delay(FADE_SPEED);
   }
 }
 
 void fadeLightingIn() {  
-  for (uint8_t b = 0; b < 255; b++) {
+  for (float b = 0; b < 255; b += FADE_SPEED) {
     float factor = b / 255;
+//    float r =  readyColors[0] * factor;
+//    float g =  readyColors[1] * factor;
+//    float bl =  readyColors[2] * factor;
+//    Serial.print("readyColors[0] * factor: ");
+//    Serial.print(r);
+//    Serial.print("readyColors[1] * factor: ");
+//     Serial.print(g);
+//    Serial.print("readyColors[2] * factor: ");
+//     Serial.print(bl);
+//    Serial.print("ALTAR_READY_PIXEL_BIT ");
+//    Serial.print(ALTAR_READY_PIXEL_BIT);
+//    Serial.print("ALTAR_READY_PIXELS: ");
+//    Serial.print(ALTAR_READY_PIXELS);
     showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
     showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, ALTAR_SAFETY_PIXEL_BIT, ALTAR_SAFETY_PIXELS);
     showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, TABLE_SAFETY_PIXEL_BIT, TABLE_SAFETY_PIXELS);
-    delay(FADE_SPEED);
   }
 }
 
-void fadeStrandIn(int colors[], int strand, int num_pixels) {  
-  for (uint8_t b = 0; b < 255; b++) {
+void fadeStrandIn(float colors[], int strand, int num_pixels) {  
+  for (float b = 0; b < 255; b += FADE_SPEED) {
     float factor = b / 255;
     showColor(colors[0] * factor, colors[1] * factor, colors[2] * factor, strand, num_pixels);
-    delay(FADE_SPEED);
   }
 }
 
-void fadeStrandOut(int colors[], int strand, int num_pixels) {  
-  for (uint8_t b = 255; b > 0; b--) {
+void fadeStrandOut(float colors[], int strand, int num_pixels) {  
+  for (float b = 255; b > 0; b -= FADE_SPEED) {
     float factor = b / 255;
     showColor(colors[0] * factor, colors[1] * factor, colors[2] * factor, strand, num_pixels);
-    delay(FADE_SPEED);
   }
 }
 
@@ -278,6 +290,7 @@ void candleFlames() {
   Tlc.update();
 
   delay(500);
+  
   flameOff();
 }
 
@@ -285,8 +298,8 @@ void outerFlames(){
   Tlc.set(0, TLC_ON); 
   Tlc.set(6, TLC_ON); 
   Tlc.update();
-  
   delay(500);
+  
   flameOff();
 }
 
@@ -296,6 +309,7 @@ void middleFlames(){
   Tlc.update();
   
   delay(500);
+  
   flameOff();
 }
 
@@ -305,6 +319,7 @@ void innerFlames(){
   Tlc.update();
   
   delay(500);
+  
   flameOff();
 }
 
@@ -313,6 +328,7 @@ void catFlames(){
   Tlc.update();
    
   delay(1500);
+  
   flameOff();
 }
 
@@ -321,12 +337,14 @@ void catScoff(){
   Tlc.update();
    
   delay(500);
+  
   flameOff();
 }
 
 void flameOff(){
   Tlc.clear();
   Tlc.update();
+  delay(500);
 }
 
 
