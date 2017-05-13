@@ -61,7 +61,7 @@ void loop() {
   // Debug
   Serial.print(scale.get_units());
   Serial.println();
-  
+ 
   // Button reads inverted because we're using the internal pullup resistor
   if (!digitalRead(GO_BUTTON)){
     Serial.print("GO!");
@@ -109,11 +109,11 @@ void castSpell() {
 
      Tlc.set(effectNumber, TLC_ON); 
      Tlc.update();
-  
-     delay(500);
+     delay(250);
   
      Tlc.set(effectNumber, TLC_OFF); 
      Tlc.update();
+     delay(250);
   }
 
   candleFlames();
@@ -153,7 +153,7 @@ void evaluateOffering() {
 void setAltarListenLighting(){
   // TODO: Should take about 5s? how long should our delay be?
   // Theatre lighting around the outside three times
-  theaterChase(readyColors[0], readyColors[1], readyColors[2], 0, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS, 3);
+  theaterChase(readyColors[0], readyColors[1], readyColors[2], 50, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS, 5);
   fadeStrandIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
 }
 
@@ -170,7 +170,7 @@ void doAltarReadyPulse(){
     globalFadeLevel--;
   }
 
-  float factor = globalFadeLevel / 255;
+  float factor = globalFadeLevel / 255.0;
   showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
 }
 
@@ -227,19 +227,6 @@ void fadeLightingOut() {
 void fadeLightingIn() {  
   for (float b = 0; b < 255; b += FADE_SPEED) {
     float factor = b / 255;
-//    float r =  readyColors[0] * factor;
-//    float g =  readyColors[1] * factor;
-//    float bl =  readyColors[2] * factor;
-//    Serial.print("readyColors[0] * factor: ");
-//    Serial.print(r);
-//    Serial.print("readyColors[1] * factor: ");
-//     Serial.print(g);
-//    Serial.print("readyColors[2] * factor: ");
-//     Serial.print(bl);
-//    Serial.print("ALTAR_READY_PIXEL_BIT ");
-//    Serial.print(ALTAR_READY_PIXEL_BIT);
-//    Serial.print("ALTAR_READY_PIXELS: ");
-//    Serial.print(ALTAR_READY_PIXELS);
     showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
     showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, ALTAR_SAFETY_PIXEL_BIT, ALTAR_SAFETY_PIXELS);
     showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, TABLE_SAFETY_PIXEL_BIT, TABLE_SAFETY_PIXELS);
@@ -288,10 +275,10 @@ void candleFlames() {
   Tlc.set(5, TLC_ON);
   Tlc.set(6, TLC_ON);
   Tlc.update();
-
   delay(500);
   
   flameOff();
+  delay(500);
 }
 
 void outerFlames(){
@@ -301,50 +288,50 @@ void outerFlames(){
   delay(500);
   
   flameOff();
+  delay(500);
 }
 
 void middleFlames(){
   Tlc.set(1, TLC_ON); 
   Tlc.set(5, TLC_ON); 
   Tlc.update();
-  
   delay(500);
   
   flameOff();
+  delay(500);
 }
 
 void innerFlames(){
   Tlc.set(2, TLC_ON); 
   Tlc.set(4, TLC_ON); 
   Tlc.update();
-  
   delay(500);
   
   flameOff();
+  delay(500);
 }
 
 void catFlames(){
   Tlc.set(3, TLC_ON);
   Tlc.update();
-   
   delay(1500);
   
   flameOff();
+  delay(500);
 }
 
 void catScoff(){
   Tlc.set(3, TLC_ON);
   Tlc.update();
-   
   delay(500);
   
   flameOff();
+  delay(500);
 }
 
 void flameOff(){
   Tlc.clear();
   Tlc.update();
-  delay(500);
 }
 
 
