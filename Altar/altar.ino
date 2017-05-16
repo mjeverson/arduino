@@ -128,16 +128,16 @@ void evaluateOffering() {
     // Flame on!
     fireOutsideIn();
     candleFlames();
-  } else if((scale.get_units() <= 100 && scale.get_units() > 30) || willOfTheCat > 85) {
+  } else if ((scale.get_units() <= 100 && scale.get_units() > 30) || willOfTheCat > 85) {
     fireOutsideIn();
-  } else if((scale.get_units() <= 30 && scale.get_units() > 20) || willOfTheCat > 75) {
+  } else if ((scale.get_units() <= 30 && scale.get_units() > 20) || willOfTheCat > 75) {
     outerFlames();
     middleFlames();
     innerFlames();
-  } else if((scale.get_units() <= 20 && scale.get_units() > 10) || willOfTheCat > 65) {
+  } else if ((scale.get_units() <= 20 && scale.get_units() > 10) || willOfTheCat > 65) {
     outerFlames();
     middleFlames();
-  } else if((scale.get_units() <= 10 && scale.get_units() > 5) || willOfTheCat > 55) {
+  } else if ((scale.get_units() <= 10 && scale.get_units() > 5) || willOfTheCat > 55) {
     outerFlames();
   } else {
     catScoff();
