@@ -68,7 +68,7 @@ void loop() {
     // Go time! Do some nice LED prep stuff to show the altar is reading/waiting
     setAltarListenLighting();
     
-    delay(2000);
+    delay(1000);
     
     // Take a scale reading and trigger some fire and lights
     evaluateOffering();
