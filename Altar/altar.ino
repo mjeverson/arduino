@@ -98,10 +98,10 @@ void loop() {
 void castSpell() {
   //TODO: Custom lights?
   // Custom spell fire pattern
-  long numberOfEffects = random(5, 10);
+  long numberOfEffects = random(1, 11);
 
   for (int i = 0; i < numberOfEffects; i++){
-    long effectNumber = random(0, 6);  
+    long effectNumber = random(7);  
 
      Tlc.set(effectNumber, TLC_ON); 
      Tlc.update();
