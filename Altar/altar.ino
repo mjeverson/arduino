@@ -75,8 +75,6 @@ void loop() {
 
     // Fade all lights out, then fade back in
     fadeLightingOutThenIn();
-
-    delay(2000);
   } else if (!digitalRead(SPELL_BUTTON)) {
     // Invoke the great old ones
     fadeStrandIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
@@ -86,8 +84,6 @@ void loop() {
     delay(1000);
     
     fadeStrandOutThenIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
-
-    delay(2000);
   } else {
     // Pulsate the white light on the altar, track with a global factor each loop and reset when you do anything    
     doAltarReadyPulse();
