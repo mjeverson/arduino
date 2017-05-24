@@ -48,14 +48,16 @@ void setup() {
   digitalWrite(GO_SWITCH, HIGH);
   digitalWrite(SPELL_SWITCH, HIGH);
 
-  ledsetup();  
-  fadeLightingIn();
-
   Tlc.init();
   flameOff();
 
   scale.set_scale(calibration_factor); 
   scale.tare();  
+
+  randomSeed(analogRead(0));
+
+  ledsetup();  
+  fadeLightingIn();
 }
 
 void loop() {
@@ -116,7 +118,7 @@ void castSpell() {
 // Make fire and lights happen based on the scale reading!
 void evaluateOffering() {  
   // Add in an element of random chance, but should always be the best when over a certain threshold
-  long willOfTheCat = random(0, 100);
+  long willOfTheCat = random(101);
 
   //TODO: Probably want to reduce the thresholds, still do >100 or so for max effort, but give everything a better probability. Average offering probably won't be very heavy and we want moar fire.
   // Evaluate the weight thresholds and response patterns
@@ -145,7 +147,6 @@ void evaluateOffering() {
 
 // Sets the altar lights in a pattern that indicates it's listening, 
 void setAltarListenLighting(){
-  // TODO: Should take about 5s? how long should our delay be?
   // Theatre lighting around the outside three times
   theaterChase(readyColors[0], readyColors[1], readyColors[2], 50, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS, 5);
   fadeStrandIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
