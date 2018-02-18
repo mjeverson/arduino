@@ -1,37 +1,54 @@
 /*
- * Open all files in the root dir and print their filename and modify date/time
+ * Print size, modify date/time, and name for all files in root.
  */
-#include <SdFat.h>
+#include <SPI.h>
+#include "SdFat.h"
 
-// SD chip select pin
+// SD default chip select pin.
 const uint8_t chipSelect = SS;
 
 // file system object
 SdFat sd;
 
 SdFile file;
-
-// define a serial output stream
-ArduinoOutStream cout(Serial);
 //------------------------------------------------------------------------------
 void setup() {
   Serial.begin(9600);
-  while (!Serial) {} // wait for Leonardo
-  delay(1000);
   
-  // initialize the SD card at SPI_HALF_SPEED to avoid bus errors with
-  // breadboards.  use SPI_FULL_SPEED for better performance.
-  if (!sd.begin(chipSelect, SPI_HALF_SPEED)) sd.initErrorHalt();
+  // Wait for USB Serial 
+  while (!Serial) {
+    SysCall::yield();
+  }
+  
+  Serial.println("Type any character to start");
+  while (!Serial.available()) {
+    SysCall::yield();
+  }
 
-  // open next file in root.  The volume working directory, vwd, is root
+  // Initialize at the highest speed supported by the board that is
+  // not over 50 MHz. Try a lower speed if SPI errors occur.
+  if (!sd.begin(chipSelect, SD_SCK_MHZ(50))) {
+    sd.initErrorHalt();
+  }
+
+  // Open next file in root.  The volume working directory, vwd, is root.
+  // Warning, openNext starts at the current position of sd.vwd() so a
+  // rewind may be neccessary in your application.
+  sd.vwd()->rewind();
   while (file.openNext(sd.vwd(), O_READ)) {
-    file.printName(&Serial);
-    cout << ' ';
+    file.printFileSize(&Serial);
+    Serial.write(' ');
     file.printModifyDateTime(&Serial);
-    cout << endl;
+    Serial.write(' ');
+    file.printName(&Serial);
+    if (file.isDir()) {
+      // Indicate a directory.
+      Serial.write('/');
+    }
+    Serial.println();
     file.close();
   }
-  cout << "\nDone!" << endl;
+  Serial.println("Done!");
 }
 //------------------------------------------------------------------------------
 void loop() {}
