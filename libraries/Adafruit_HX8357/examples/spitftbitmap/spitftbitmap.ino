@@ -27,9 +27,11 @@
 #define TFT_DC 9
 #define TFT_CS 10
 #define TFT_CS2 11
+#define TFT_CS3 12
 // Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
 Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
 Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
+Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC);
 
 #define SD_CS 53
 
@@ -39,8 +41,11 @@ void setup(void) {
   tft.begin(HX8357D);
   tft.fillScreen(HX8357_BLUE);
 
-  tft2.begin(HX8357D);
-  tft2.fillScreen(HX8357_BLUE);
+//  tft2.begin(HX8357D);
+//  tft2.fillScreen(HX8357_BLUE);
+//
+//  tft3.begin(HX8357D);
+//  tft3.fillScreen(HX8357_BLUE);
 
   pinMode(SD_CS,OUTPUT);
   digitalWrite(SD_CS,HIGH);
@@ -134,7 +139,8 @@ void bmpDraw(char *filename, uint8_t x, uint16_t y) {
 
         // Set TFT address window to clipped image bounds
         tft.setAddrWindow(x, y, x+w-1, y+h-1);
-        tft2.setAddrWindow(x, y, x+w-1, y+h-1);
+//        tft2.setAddrWindow(x, y, x+w-1, y+h-1);
+//        tft3.setAddrWindow(x, y, x+w-1, y+h-1);
 
         for (row=0; row<h; row++) { // For each scanline...
 
@@ -165,7 +171,8 @@ void bmpDraw(char *filename, uint8_t x, uint16_t y) {
             g = sdbuffer[buffidx++];
             r = sdbuffer[buffidx++];
             tft.pushColor(tft.color565(r,g,b));
-            tft2.pushColor(tft2.color565(r,g,b));
+//            tft2.pushColor(tft2.color565(r,g,b));
+//            tft3.pushColor(tft3.color565(r,g,b));
           } // end pixel
         } // end scanline
         Serial.print(F("Loaded in "));
