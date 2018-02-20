@@ -77,8 +77,8 @@ void bmpDraw(char *filename, uint8_t x, uint16_t y) {
   uint8_t  bmpDepth;              // Bit depth (currently must be 24)
   uint32_t bmpImageoffset;        // Start of image data in file
   uint32_t rowSize;               // Not always = bmpWidth; may have padding
-  uint16_t  sdbuffer[3*BUFFPIXEL]; // pixel buffer (R+G+B per pixel)
-  uint16_t  buffidx = sizeof(sdbuffer); // Current position in sdbuffer
+  uint8_t  sdbuffer[3*BUFFPIXEL]; // pixel buffer (R+G+B per pixel)
+  uint8_t  buffidx = sizeof(sdbuffer); // Current position in sdbuffer
   boolean  goodBmp = false;       // Set to true on valid header parse
   boolean  flip    = true;        // BMP is stored bottom-to-top
   int      w, h, row, col;
