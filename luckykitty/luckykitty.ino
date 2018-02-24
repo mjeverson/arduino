@@ -17,7 +17,8 @@
 #include <Adafruit_GFX.h>    // Core graphics library
 #include "Adafruit_HX8357.h"
 #include <SPI.h>
-#include <SD.h>
+//#include <SD.h> OLD
+#include <SdFat.h>
 
 // TFT display and SD card will share the hardware SPI interface.
 // Hardware SPI pins are specific to the Arduino board type and
@@ -33,26 +34,78 @@ Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
 Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
 Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC);
 
-#define SD_CS 53
+//#define SD_CS 53 OLD
+
+// NEW
+/*
+ * SD chip select pin.  Common values are:
+ *
+ * Arduino Ethernet shield, pin 4.
+ * SparkFun SD shield, pin 8.
+ * Adafruit SD shields and modules, pin 10.
+ * Default SD chip select is the SPI SS pin.
+ */
+const uint8_t SD_CHIP_SELECT = SS;
+
+SdFatSdioEX sd;
+
+// serial output steam
+ArduinoOutStream cout(Serial);
+
+// global for card size
+uint32_t cardSize;
+
+//------------------------------------------------------------------------------
+// store error strings in flash
+#define sdErrorMsg(msg) sd.errorPrint(F(msg));
+
+// end NEW
 
 void setup(void) {
+  delay(5000);
   Serial.begin(9600);
 
-  tft.begin(HX8357D);
-  tft2.begin(HX8357D);
-  tft3.begin(HX8357D);
-  
-  tft.fillScreen(HX8357_BLUE);
-  tft2.fillScreen(HX8357_BLUE);
-  tft3.fillScreen(HX8357_BLUE);
-  
-  Serial.print("Initializing SD card...");
-  if (!SD.begin(SD_CS)) {
-    Serial.println("failed!");
-  }
-  Serial.println("OK!");
+  // NEW
+    // Wait for USB Serial 
+    while (!Serial) {
+      SysCall::yield();
+    }
 
-  bmpDraw("nyanf.bmp", 0, 0);
+     // use uppercase in hex and use 0X base prefix
+    cout << uppercase << showbase << endl;
+  
+    // F stores strings in flash to save RAM
+    cout << F("SdFat version: ") << SD_FAT_VERSION << endl;
+  // END NEW
+
+//  tft.begin(HX8357D);
+//  tft2.begin(HX8357D);
+//  tft3.begin(HX8357D);
+//  
+//  tft.fillScreen(HX8357_BLUE);
+//  tft2.fillScreen(HX8357_BLUE);
+//  tft3.fillScreen(HX8357_BLUE);
+
+  // Initialize the SD card
+  Serial.print("Initializing SD card...");
+  uint32_t t = millis();
+
+  if (!sd.cardBegin()) {
+    sdErrorMsg("\ncardBegin failed");
+    return;
+  }
+
+  t = millis() - t;
+
+  cardSize = sd.card()->cardSize();
+  if (cardSize == 0) {
+    sdErrorMsg("cardSize failed");
+    return;
+  }
+  
+  cout << F("\ninit time: ") << t << " ms" << endl;
+
+//  bmpDraw("nyanf.bmp", 0, 0);
 }
 
 void loop() {
@@ -93,7 +146,7 @@ void bmpDraw(char *filename, uint8_t x, uint16_t y) {
   Serial.println('\'');
 
   // Open requested file on SD card
-  if ((bmpFile = SD.open(filename)) == NULL) {
+  if ((bmpFile = sd.open(filename)) == NULL) {
     Serial.print(F("File not found"));
     return;
   }
