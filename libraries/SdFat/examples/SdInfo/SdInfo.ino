@@ -5,7 +5,7 @@
 #include "SdFat.h"
 
 // Set USE_SDIO to zero for SPI card access. 
-#define USE_SDIO 0
+#define USE_SDIO 1
 /*
  * SD chip select pin.  Common values are:
  *
@@ -243,5 +243,56 @@ void loop() {
     sdErrorMsg("\nFile System initialization failed.\n");
     return;
   }
+
+
+// open the file. note that only one file can be open at a time,
+  // so you have to close this one before opening another.
+//  File myFile = sd.open("test.txt", FILE_WRITE);
+//
+//  // if the file opened okay, write to it:
+//  if (myFile) {
+//    Serial.print("Writing to test.txt...");
+//    myFile.println("testing 1, 2, 3.");
+//    // close the file:
+//    myFile.close();
+//    Serial.println("done.");
+//  } else {
+//    // if the file didn't open, print an error:
+//    Serial.println("error opening test.txt");
+//  }
+//
+//  // re-open the file for reading:
+//  myFile = sd.open("test.txt");
+//  if (myFile) {
+//    Serial.println("test.txt:");
+//
+//    // read from the file until there's nothing else in it:
+//    while (myFile.available()) {
+//      Serial.write(myFile.read());
+//    }
+//    // close the file:
+//    myFile.close();
+//  } else {
+//    // if the file didn't open, print an error:
+//    Serial.println("error opening test.txt");
+//  }
+
+//  sd.open("/");
+//
+  File myFile = sd.open("nyanf.bmp");
+  if (myFile) {
+    Serial.print(F("Found nyanf.bmp!"));
+    myFile.close();
+  } else {
+    Serial.print(F("File not found"));
+    return;
+  }
+
+  File bmpFile;
+  if ((bmpFile = sd.open("nyanf.bmp")) == NULL) {
+    Serial.print(F("second go: File not found"));
+    return;
+  }
+  
   volDmp();
 }

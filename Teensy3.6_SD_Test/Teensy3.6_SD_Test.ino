@@ -5,7 +5,7 @@
 #include <SdFat.h>
 
 // Set USE_SDIO to zero for SPI card access. 
-#define USE_SDIO 1
+#define USE_SDIO 0
 /*
  * SD chip select pin.  Common values are:
  *

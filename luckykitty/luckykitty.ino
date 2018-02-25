@@ -14,27 +14,33 @@
  ****************************************************/
 //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
 
+
+//for speed:
+// not full size bmps, only the pixels we need to draw. background transparent doesn't even matter, no background for that.
+// check the better IL library optimized for teensy
+// draw one screen at a time so each screen upates faster, 1-2-3-1-2-3
+
 #include <Adafruit_GFX.h>    // Core graphics library
 #include "Adafruit_HX8357.h"
 #include <SPI.h>
-//#include <SD.h> OLD
-#include <SdFat.h>
+#include "SdFat.h"
+
+// Set USE_SDIO to zero for SPI card access. 
+#define USE_SDIO 1
 
 // TFT display and SD card will share the hardware SPI interface.
 // Hardware SPI pins are specific to the Arduino board type and
 // cannot be remapped to alternate pins.  For Arduino Uno,
 // Duemilanove, etc., pin 11 = MOSI, pin 12 = MISO, pin 13 = SCK.
 
-#define TFT_DC 9
-#define TFT_CS 10
-#define TFT_CS2 11
-#define TFT_CS3 12
+#define TFT_DC 24//9
+#define TFT_CS 25//10
+#define TFT_CS2 26//11
+#define TFT_CS3 27//12
 // Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
 Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
 Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
 Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC);
-
-//#define SD_CS 53 OLD
 
 // NEW
 /*
@@ -47,10 +53,12 @@ Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC);
  */
 const uint8_t SD_CHIP_SELECT = SS;
 
+#if USE_SDIO
+// Use faster SdioCardEX
 SdFatSdioEX sd;
-
-// serial output steam
-ArduinoOutStream cout(Serial);
+#else // USE_SDIO
+SdFat sd;
+#endif  // USE_SDIO
 
 // global for card size
 uint32_t cardSize;
@@ -62,7 +70,6 @@ uint32_t cardSize;
 // end NEW
 
 void setup(void) {
-  delay(5000);
   Serial.begin(9600);
 
   // NEW
@@ -71,27 +78,24 @@ void setup(void) {
       SysCall::yield();
     }
 
-     // use uppercase in hex and use 0X base prefix
-    cout << uppercase << showbase << endl;
-  
-    // F stores strings in flash to save RAM
-    cout << F("SdFat version: ") << SD_FAT_VERSION << endl;
+    Serial.println("SdFat version: ");
+    Serial.print(SD_FAT_VERSION);
   // END NEW
 
-//  tft.begin(HX8357D);
-//  tft2.begin(HX8357D);
-//  tft3.begin(HX8357D);
-//  
-//  tft.fillScreen(HX8357_BLUE);
-//  tft2.fillScreen(HX8357_BLUE);
-//  tft3.fillScreen(HX8357_BLUE);
+  tft.begin(HX8357D);
+  tft2.begin(HX8357D);
+  tft3.begin(HX8357D);
+  
+  tft.fillScreen(HX8357_BLUE);
+  tft2.fillScreen(HX8357_BLUE);
+  tft3.fillScreen(HX8357_BLUE);
 
   // Initialize the SD card
-  Serial.print("Initializing SD card...");
+  Serial.println("Initializing SD card...");
   uint32_t t = millis();
 
   if (!sd.cardBegin()) {
-    sdErrorMsg("\ncardBegin failed");
+    Serial.println("\ncardBegin failed");
     return;
   }
 
@@ -99,18 +103,30 @@ void setup(void) {
 
   cardSize = sd.card()->cardSize();
   if (cardSize == 0) {
-    sdErrorMsg("cardSize failed");
+    Serial.println("cardSize failed");
+    return;
+  }
+
+  if (!sd.fsBegin()) {
+    sdErrorMsg("\nFile System initialization failed.\n");
     return;
   }
   
-  cout << F("\ninit time: ") << t << " ms" << endl;
+  Serial.println("\ninit time: ");
+  Serial.print(t);
 
-//  bmpDraw("nyanf.bmp", 0, 0);
+  bmpDraw("nyanf.bmp", 0, 0, tft);
+  bmpDraw("nyanf.bmp", 0, 0, tft2);
+  bmpDraw("nyanf.bmp", 0, 0, tft3);
 }
 
 void loop() {
-//  bmpDraw("nyanh.bmp", 0, 0);
-//  bmpDraw("nyanf.bmp", 0, 0);
+  bmpDraw("nyanh.bmp", 0, 0, tft);
+  bmpDraw("nyanh.bmp", 0, 0, tft2);
+  bmpDraw("nyanh.bmp", 0, 0, tft3);
+  bmpDraw("nyanf.bmp", 0, 0, tft);
+  bmpDraw("nyanf.bmp", 0, 0, tft2);
+  bmpDraw("nyanf.bmp", 0, 0, tft3);
 }
 
 // This function opens a Windows Bitmap (BMP) file and
@@ -123,7 +139,7 @@ void loop() {
 
 #define BUFFPIXEL 20
 
-void bmpDraw(char *filename, uint8_t x, uint16_t y) {
+void bmpDraw(char *filename, uint8_t x, uint16_t y, Adafruit_HX8357 screen) {
 
   File     bmpFile;
   int      bmpWidth, bmpHeight;   // W+H in pixels
@@ -146,7 +162,7 @@ void bmpDraw(char *filename, uint8_t x, uint16_t y) {
   Serial.println('\'');
 
   // Open requested file on SD card
-  if ((bmpFile = sd.open(filename)) == NULL) {
+  if((bmpFile = sd.open(filename)) == NULL){
     Serial.print(F("File not found"));
     return;
   }
@@ -189,9 +205,9 @@ void bmpDraw(char *filename, uint8_t x, uint16_t y) {
         if((y+h-1) >= tft.height()) h = tft.height() - y;
 
         // Set TFT address window to clipped image bounds
-        tft.setAddrWindow(x, y, x+w-1, y+h-1);
-        tft2.setAddrWindow(x, y, x+w-1, y+h-1);
-        tft3.setAddrWindow(x, y, x+w-1, y+h-1);
+        screen.setAddrWindow(x, y, x+w-1, y+h-1);
+//        tft2.setAddrWindow(x, y, x+w-1, y+h-1);
+//        tft3.setAddrWindow(x, y, x+w-1, y+h-1);
 
         for (row=0; row<h; row++) { // For each scanline...
 
@@ -221,9 +237,9 @@ void bmpDraw(char *filename, uint8_t x, uint16_t y) {
             b = sdbuffer[buffidx++];
             g = sdbuffer[buffidx++];
             r = sdbuffer[buffidx++];
-            tft.pushColor(tft.color565(r,g,b));
-            tft2.pushColor(tft2.color565(r,g,b));
-            tft3.pushColor(tft3.color565(r,g,b));
+            screen.pushColor(tft.color565(r,g,b));
+//            tft2.pushColor(tft2.color565(r,g,b));
+//            tft3.pushColor(tft3.color565(r,g,b));
           } // end pixel
         } // end scanline
         Serial.print(F("Loaded in "));

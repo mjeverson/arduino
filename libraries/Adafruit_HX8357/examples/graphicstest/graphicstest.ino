@@ -18,16 +18,17 @@
 #include "Adafruit_HX8357.h"
 
 // These are 'flexible' lines that can be changed
-#define TFT_CS 10
-#define TFT_CS2 11
-#define TFT_CS3 12
-#define TFT_DC 9
+#define TFT_DC 24
+#define TFT_CS 25
+#define TFT_CS2 26//11
+#define TFT_CS3 27//12
+
 #define TFT_RST 8 // RST can be set to -1 if you tie it to Arduino's reset
 
 // Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
 Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);
 Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC, TFT_RST);
-Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC, TFT_RST);
+//Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC, TFT_RST);
 
 // SoftSPI - note that on some processors this might be *faster* than hardware SPI!
 //Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, MOSI, SCK, TFT_RST, MISO);
@@ -40,7 +41,7 @@ void setup() {
 
   tft.begin(HX8357D);
   tft2.begin(HX8357D);
-  tft3.begin(HX8357D);
+//  tft3.begin(HX8357D);
 
   // read diagnostics (optional but can help debug problems)
   uint8_t x = tft.readcommand8(HX8357_RDPOWMODE);
@@ -163,28 +164,28 @@ unsigned long testText() {
   tft2.println("with my blurglecruncheon,");
   tft2.println("see if I don't!");
 
-  tft3.fillScreen(HX8357_BLACK);
-  tft3.setCursor(0, 0);
-  tft3.setTextColor(HX8357_WHITE);  tft.setTextSize(1);
-  tft3.println("Hello World!");
-  tft3.setTextColor(HX8357_YELLOW); tft.setTextSize(2);
-  tft3.println(1234.56);
-  tft3.setTextColor(HX8357_RED);    tft.setTextSize(3);
-  tft3.println(0xDEADBEEF, HEX);
-  tft3.println();
-  tft3.setTextColor(HX8357_GREEN);
-  tft3.setTextSize(5);
-  tft3.println("Groop");
-  tft3.setTextSize(2);
-  tft3.println("I implore thee,");
-  tft3.setTextSize(1);
-  tft3.println("my foonting turlingdromes.");
-  tft3.println("And hooptiously drangle me");
-  tft3.println("with crinkly bindlewurdles,");
-  tft3.println("Or I will rend thee");
-  tft3.println("in the gobberwarts");
-  tft3.println("with my blurglecruncheon,");
-  tft3.println("see if I don't!");
+//  tft3.fillScreen(HX8357_BLACK);
+//  tft3.setCursor(0, 0);
+//  tft3.setTextColor(HX8357_WHITE);  tft.setTextSize(1);
+//  tft3.println("Hello World!");
+//  tft3.setTextColor(HX8357_YELLOW); tft.setTextSize(2);
+//  tft3.println(1234.56);
+//  tft3.setTextColor(HX8357_RED);    tft.setTextSize(3);
+//  tft3.println(0xDEADBEEF, HEX);
+//  tft3.println();
+//  tft3.setTextColor(HX8357_GREEN);
+//  tft3.setTextSize(5);
+//  tft3.println("Groop");
+//  tft3.setTextSize(2);
+//  tft3.println("I implore thee,");
+//  tft3.setTextSize(1);
+//  tft3.println("my foonting turlingdromes.");
+//  tft3.println("And hooptiously drangle me");
+//  tft3.println("with crinkly bindlewurdles,");
+//  tft3.println("Or I will rend thee");
+//  tft3.println("in the gobberwarts");
+//  tft3.println("with my blurglecruncheon,");
+//  tft3.println("see if I don't!");
   
   tft.setTextColor(HX8357_WHITE);
   tft.println(F("Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, 'and what is the use of a book,' thought Alice 'without pictures or conversations?'"));
