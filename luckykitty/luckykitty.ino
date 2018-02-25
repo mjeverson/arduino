@@ -18,7 +18,10 @@
 //for speed:
 // not full size bmps, only the pixels we need to draw. background transparent doesn't even matter, no background for that.
 // check the better IL library optimized for teensy
+// Also try the bigger buffer, 240px?
 // draw one screen at a time so each screen upates faster, 1-2-3-1-2-3
+// maybe no half-images
+// why only getting 1 screen when external power, try each pin separately? Third one being plugged in seems to mess it up
 
 #include <Adafruit_GFX.h>    // Core graphics library
 #include "Adafruit_HX8357.h"
@@ -74,9 +77,9 @@ void setup(void) {
 
   // NEW
     // Wait for USB Serial 
-    while (!Serial) {
-      SysCall::yield();
-    }
+//    while (!Serial) {
+//      SysCall::yield();
+//    }
 
     Serial.println("SdFat version: ");
     Serial.print(SD_FAT_VERSION);
