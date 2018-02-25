@@ -138,7 +138,7 @@
 #define	HX8357_GREEN   0x07E0
 #define HX8357_CYAN    0x07FF
 #define HX8357_MAGENTA 0xF81F
-#define HX8357_YELLOW  0xFFE0  
+#define HX8357_YELLOW  0xFFE0
 #define HX8357_WHITE   0xFFFF
 
 
@@ -163,7 +163,7 @@ class Adafruit_HX8357 : public Adafruit_GFX {
 
   // Required Non-Transaction
   void      drawPixel(int16_t x, int16_t y, uint16_t color);
-  
+
   // Transaction API
   void      startWrite(void);
   void      endWrite(void);
@@ -178,7 +178,7 @@ class Adafruit_HX8357 : public Adafruit_GFX {
   void      writePixels(uint16_t * colors, uint32_t len);
   void      writeColor(uint16_t color, uint32_t len);
   void      pushColor(uint16_t color);
-  
+
   void      drawRGBBitmap(int16_t x, int16_t y,
 				    uint16_t *pcolors, int16_t w, int16_t h);
   void     commandList(uint8_t *addr);
@@ -204,7 +204,7 @@ class Adafruit_HX8357 : public Adafruit_GFX {
   uint16_t readcommand16(uint8_t);
   uint32_t readcommand32(uint8_t);
   void     dummyclock(void);
-  */  
+  */
 
 };
 
