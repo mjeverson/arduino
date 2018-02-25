@@ -21,7 +21,7 @@
 // Also try the bigger buffer, 240px?
 // draw one screen at a time so each screen upates faster, 1-2-3-1-2-3
 // maybe no half-images
-// why only getting 1 screen when external power, try each pin separately? Third one being plugged in seems to mess it up
+// Need to use the other SPI interfaces on the teensy for third screen
 
 #include <Adafruit_GFX.h>    // Core graphics library
 #include "Adafruit_HX8357.h"
@@ -40,10 +40,16 @@
 #define TFT_CS 25//10
 #define TFT_CS2 26//11
 #define TFT_CS3 27//12
+
+#define MOSI1 0
+#define MISO1 1
+#define TFT_DC2 28
+#define SCK1 32
+
 // Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
 Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
 Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
-Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC);
+Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC2, MOSI1, SCK1, -1, MISO1);
 
 // NEW
 /*
@@ -56,12 +62,12 @@ Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC);
  */
 const uint8_t SD_CHIP_SELECT = SS;
 
-#if USE_SDIO
+//#if USE_SDIO
 // Use faster SdioCardEX
 SdFatSdioEX sd;
-#else // USE_SDIO
-SdFat sd;
-#endif  // USE_SDIO
+//#else // USE_SDIO
+//SdFat sd;
+//#endif  // USE_SDIO
 
 // global for card size
 uint32_t cardSize;
