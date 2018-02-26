@@ -67,8 +67,9 @@ Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
 Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC2, MOSI1, SCK1, -1, MISO1);
 
 #define NUM_SLOTS 6
-int winState, slot1_current, slot2_current, slot3_current; //might not need but let's try it
+int winState, slot1_current, slot2_current, slot3_current; 
 char* images[] = {"nyanf.bmp", "tentf.bmp", "coinf.bmp", "firef.bmp", "cheesef.bmp", "pinchyf.bmp"};
+char* sounds[] = {"nyan.wav", "scream.wav", "mario.wav", "hth.wav", "cheesy.wav", "pinchy.wav", "roll.wav"};
 
 // Onboard Teensy 3.6 SD Slot
 const uint8_t SD_CHIP_SELECT = SS;
@@ -135,10 +136,9 @@ void setup(void) {
 //  strip.begin();
 
   // Initialize slot state.
-  int slotState = random(0,5);
-  slot1_current = slotState % 5;
-  slot2_current = (slotState % 5) + 1;
-  slot3_current = (slotState % 5) + 2;
+  slot1_current = random(0,5);
+  slot2_current = random(0,5);
+  slot3_current = random(0,5);
   bmpDraw(images[slot1_current], 0, 0, tft);
   bmpDraw(images[slot2_current], 0, 0, tft2);
   bmpDraw(images[slot3_current], 0, 0, tft3);
@@ -205,6 +205,8 @@ void rollSlots(){
     slot2_end = falseWinSlot + 1;
     slot3_end = falseWinSlot + 2;
   }
+
+  //TODO: Start playing rolling sound? Loop in the background until after?
   
   int index = 0;
   int slot1_stoppedAt = -1;
@@ -240,38 +242,46 @@ void rollSlots(){
   
     index++;
   }
+
+  //TODO: Stop playing rolling sound?
 }
 
 void doWinState(){
   //based on win state do sounds, fire, etc.
-  // same if/else as above, maybe consolidate somehow?
+  //TODO: same if/else as above, maybe consolidate somehow?
   //TODO: could change image on screen for victory if we want
   if (winState <= 2) {
     // nyancat
+    Serial.print("doWinState nyan");
     //fire: 1-2-3-4-4-3-2-1
     //LEDs: nyancat rainbow marquee
     //Sound: nyancat
   } else if (winState <= 4){
+    Serial.print("doWinState tentacle");
     // tentacle
     //fire: all at once
     // LEDs: green
     //Sound: person screaming
   } else if (winState == 5) {
+    Serial.print("doWinState coin");
     // coin
     // fire: 1-3-2-4-all
     //LEDs: Yellow
     // sound: mario 1up/coin
   } else if (winState <= 7) {
+    Serial.print("doWinState fire");
     // fire
     // fire all 4 x3
     // LEDs: Red
     // sound: highway to hell
   } else if (winState <= 9) {
+    Serial.print("doWinState cheesy");
     // cheesy poofs
     // no fire
     // LEDs: white
     // Sound: cheesy poofs
   } else if (winState == 10){
+    Serial.print("doWinState pinchy");
     // pinchy
     // fire all 4
     // LEDs: Red
