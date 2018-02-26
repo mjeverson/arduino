@@ -39,7 +39,7 @@ Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
 Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC2, MOSI1, SCK1, -1, MISO1);
 
 #define NUM_SLOTS 6
-int slot1, slot2, slot3;
+int slotState; //might not need but let's try it
 char* images[] = {"nyanf.bmp", "cheesef.bmp", "pinchyf.bmp", "firef.bmp", "tentf.bmp", "coinf.bmp"};
 
 // Onboard Teensy 3.6 SD Slot
@@ -47,9 +47,6 @@ const uint8_t SD_CHIP_SELECT = SS;
 
 // Faster library for SDIO
 SdFatSdioEX sd;
-
-// global for card size
-uint32_t cardSize;
 
 void setup(void) {
   // Sets up the RNG
@@ -63,7 +60,8 @@ void setup(void) {
   tft.begin(HX8357D);
   tft2.begin(HX8357D);
   tft3.begin(HX8357D);
-  
+
+  // Prove the screens are on and accepting commands
   tft.fillScreen(HX8357_BLUE);
   tft2.fillScreen(HX8357_BLUE);
   tft3.fillScreen(HX8357_BLUE);
@@ -86,9 +84,91 @@ void setup(void) {
   
   Serial.println("\ninit time: ");
   Serial.print(t);
+
+  //TODO: slots should start in random state. Randomize the starting position of the slots and display them
+  slotState = random(0,5);
+  slot1_current = slotState;
+  slot2_current = slotState + 1;
+  slot3_current = slotState + 2;
+  bmpDraw(images[slot1_current % 5], 0, 0, tft);
+  bmpDraw(images[slot2_current % 5], 0, 0, tft2);
+  bmpDraw(images[slot3_current) % 5], 0, 0, tft3);
 }
 
 void loop() {
+  rollSlots();
+}
+
+// Sets the slots rolling, picks an outcome and displays it
+void rollSlots(){
+  // For now do this in a serial read
+  Serial.print("\nPress any key to begin slots!\n");
+
+  while (!Serial.available()) {
+    SysCall::yield();
+  }
+  
+  // On rollSlots, we should iterate through 0-6 and set the slot to be whatever its current state is +1 (rolling over, so use %)
+  // Also need to randomize a win state. States should be any of the 6 outcomes, or a total loss, or an almost loss (Trish has the odds)
+  // On a result, save the global state of the slots. 
+  // keep rolling the first slot til it gets where it needs to go. Then the second, then the third. (don't update the global state)
+  // OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
+
+  int winState = random(0,2);
+  Serial.print("winState");
+  Serial.print(winState);
+
+  //todo: flesh this out with actual odds and logic
+  switch(winState){
+    case 0:
+      slot1_end = slot2_end = slot3_end = 1;
+      break;
+    case 1:
+      int falseWinSlot = random(0,5);
+      slot1_end = slot2_end = falseWinSlot;
+      slot3_end = falseWinSlot + 1;
+    default: 
+      int falseWinSlot = random(0,5);
+      slot1_end = falseWinSlot - 1;
+      slot2_end = falseWinSlot;
+      slot3_end = falseWinSlot + 1;
+      break;
+  }
+  
+  int index = 0;
+  int lastSlotStoppedAt = 0;
+  int minRollsBeforeStopping = 12;
+
+  // while the min number of changes hasn't happened
+  // AND the slots aren't in their final slots
+  while(index < minRollsBeforeStopping && slot1_current != slot1_end d&& slot2_current != slot2_end && slot3_current != slot3_end) {
+    // only let the first slot move for the first two iterations, then add the second for the next two, then start the third
+    // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
+
+    if (index < minRollsBeforeStopping && slot1_current != slot1_end){
+      slot1_current++;
+      bmpDraw(images[slot1_current % 5], 0, 0, tft);
+      lastSlotStoppedAt = index; //todo: not sure we want to do this here every time. after this happens we should check if min has been reached and it's in the end state, THEN set lastSlotStoppedAt
+    }
+  
+    if (staggerTracker > 1 && index < lastSlotStoppedAt + 2 && slot2_current != slot2_end) {
+      slot2_current++;
+      bmpDraw(images[slot2_current % 5], 0, 0, tft);
+      lastSlotStoppedAt = index;
+    }
+  
+    if (staggerTracker > 3 && index < lastSlotStoppedAt + 2 && slot3_current != slot3_end) {
+      slot3_current++;
+      bmpDraw(images[slot3_current % 5], 0, 0, tft);
+    }
+  
+    index++;
+  }
+
+  
+  
+  
+  
   for(int i = 0; i < NUM_SLOTS; i++){
     bmpDraw(images[i], 0, 0, tft);
     bmpDraw(images[i], 0, 0, tft2);
