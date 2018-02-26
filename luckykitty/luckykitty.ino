@@ -20,6 +20,32 @@ Notes:
 //#include <HX8357_t3.h> // Hardware-specific library. Faster, but doesn't seem to render the image on the screen?
 #include <SPI.h>
 #include "SdFat.h"
+//#include <Adafruit_NeoPixel.h> // LED Stuff
+//#include <Servo.h> // Tentacle & Coin
+//#include <TMRpcm.h> // Play Wav Files
+//#include <Wire.h> // Amp controller
+ 
+//#define SOL1 13 // Solenoid Stuff
+//#define SOL2 14 // Solenoid Stuff
+//#define SOL3 15 // Solenoid Stuff
+//#define SOL4 16 // Solenoid Stuff
+
+//#define SPEAKER 12
+//#define MAX9744_I2CADDR 0x4B
+//int volume = 31; // 0-63
+//TMRpcm tmrpcm; // wav Stuff
+
+//#define TENTACLE_SERVO 2-10, 14, 16-17, 20-23, 29-30, 35-38
+//#define COIN_SERVO 2-10, 14, 16-17, 20-23, 29-30, 35-38
+//#define NEOPIXEL 11 // LED Stuff
+
+// Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
+//Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
+
+//Servo tentacleServo;
+//Servo coinServo;  
+//int tentacleServoPos = 0;
+//int coinServoPos = 0;
 
 // screens 1 and 2 are on the spi0 bus (mosi 11, miso 12, sck 13) screen 3 is on spi1 (mosi 0, miso 1, sck 32)
 #define TFT_DC 24
@@ -38,7 +64,7 @@ Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
 Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
 Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC2, MOSI1, SCK1, -1, MISO1);
 
-#define NUM_SLOTS 6m
+#define NUM_SLOTS 6
 int winState, slot1_current, slot2_current, slot3_current; //might not need but let's try it
 char* images[] = {"nyanf.bmp", "tentf.bmp", "coinf.bmp", "firef.bmp", "cheesef.bmp", "pinchyf.bmp"};
 
@@ -84,6 +110,24 @@ void setup(void) {
   
   Serial.println("\ninit time: ");
   Serial.print(t);
+
+  // Set up sound player
+//  tmrpcm.speakerPin = SPEAKER;
+//  Wire.begin(); // Amp
+//  setVolume(volume);
+
+  // Set up solenoid
+//  pinMode(SOL1, OUTPUT);
+//  pinMode(SOL2, OUTPUT);
+//  pinMode(SOL3, OUTPUT);
+//  pinMode(SOL4, OUTPUT);
+
+  //Set up servos
+//  tentacleServo.attach(TENTACLE_SERVO);
+//  coinServo.attach(COIN_SERVO);
+
+  // Set up LEDs
+//  strip.begin();
 
   //TODO: slots should start in random state. Randomize the starting position of the slots and display them
   slotState = random(0,5);
@@ -227,30 +271,63 @@ void doWinState(){
 }
 
 void playSound(){
-  //sounds needed: nyancat, pinchy, person screaming (homer?), super mario coin/1up, highway to hell, cartman cheesy poofs
+  //sounds needed: nyancat, pinchy, person screaming (homer?), super mario coin/1up, highway to hell, cartman cheesy poofs, slot rolling sound mario kart?
+  //tmrpcm.play("nyancat.wav");
 }
 
 void doFire(){
   //trigger the solenoids
+//  digitalWrite(SOL1, HIGH);
+//  delay(1000);
+//  digitalWrite(SOL1, LOW);
+//  delay(500);
+//  digitalWrite(SOL2, HIGH);
+//  delay(1000);
+//  digitalWrite(SOL2, LOW);
 }
 
 void doTentacle(){
   // Servo to trigger tentacle
+//  for(tentacleServoPos = 10; tentacleServoPos < 170; tentacleServoPos += 1) 
+//  {                                  
+//    tentacleServo.write(tentacleServoPos); 
+//    delay(15);                      
+//  } 
 }
 
 void doCoin(){
   // servo to trigger coin dispenser
+//  for(coinServoPos = 10; coinServoPos < 170; coinServoPos += 1)  // goes from 10 degrees to 170 degrees 
+//  {                                  // in steps of 1 degree 
+//    coinServo.write(coinServoPos);              // tell servo to go to position in variable 'pos' 
+//    delay(15);                       // waits 15ms for the servo to reach the position 
+//  } 
 }
 
 void doLEDs(){
   //RGB LED patterns
+//  int stripRed = random(0,255);
+//  int stripGreen = random(0,255);
+//  int stripBlue = random(0,255);
+//
+//  // pick new colors
+//  for (int i = 0; i < strip.numPixels(); i++) {
+//    strip.setPixelColor(i, stripGreen, stripRed, stripBlue);
+//  }
 }
 
-void doNyanCat(){
-  //playSound
-  //doLEDs
+// Setting the volume is very simple! 
+void setVolume(int v) {
+  // cant be higher than 63 or lower than 0
+//  if (v > 63) v = 63;
+//  if (v < 0) v = 0;
+//  
+//  Serial.print("Setting volume to ");
+//  Serial.println(v);
+//  Wire.beginTransmission(MAX9744_I2CADDR);
+//  Wire.write(v);
+//  Wire.endTransmission();
 }
-
 
 
 // This function opens a Windows Bitmap (BMP) file and
