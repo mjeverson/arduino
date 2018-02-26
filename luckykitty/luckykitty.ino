@@ -92,7 +92,7 @@ void setup(void) {
   slot3_current = slotState + 2;
   bmpDraw(images[slot1_current % 5], 0, 0, tft);
   bmpDraw(images[slot2_current % 5], 0, 0, tft2);
-  bmpDraw(images[slot3_current) % 5], 0, 0, tft3);
+  bmpDraw(images[slot3_current % 5], 0, 0, tft3);
 }
 
 void loop() {
@@ -154,34 +154,35 @@ void rollSlots(){
   }
   
   int index = 0;
-  int lastSlotStoppedAt = 0;
-  int minRollsBeforeStopping = 6;
+  int slot1_stoppedAt = -1;
+  int slot2_stoppedAt = -1;
+  int minRollsBeforeStopping = 5;
 
-  // while the min number of changes hasn't happened
-  // AND the slots aren't in their final slots
-  while(index < minRollsBeforeStopping && slot1_current != slot1_end d&& slot2_current != slot2_end && slot3_current != slot3_end) {
+  // while the min number of changes hasn't happened AND the slots aren't in their final slots
+  while(index < minRollsBeforeStopping && slot1_current != slot1_end d&& slot2_current != slot2_end && slot3_current != slot3_end && index >= slot2_stoppedAt + 2) {
     // only let the first slot move for the first two iterations, then add the second for the next two, then start the third
     // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
 
-    slot1_current = slot1_current > 5 ? 0 : slot1_current;
-    slot2_current = slot2_current > 5 ? 0 : slot2_current;
-    slot3_current = slot3_current > 5 ? 0 : slot3_current;
-
-    if (index < minRollsBeforeStopping && slot1_current != slot1_end){
-      bmpDraw(images[slot1_current], 0, 0, tft);
+    if (index < minRollsBeforeStopping || slot1_current != slot1_end){
       slot1_current++;
-      lastSlotStoppedAt = index; //todo: not sure we want to do this here every time. after this happens we should check if min has been reached and it's in the end state, THEN set lastSlotStoppedAt
+      slot1_current = slot1_current > 5 ? 0 : slot1_current;
+      bmpDraw(images[slot1_current], 0, 0, tft);
+    } else {
+      slot1_stoppedAt = index;
     }
   
-    if (staggerTracker > 1 && index < lastSlotStoppedAt + 2 && slot2_current != slot2_end) {
-      bmpDraw(images[slot2_current], 0, 0, tft);
+    if (index > 1 && (index < minRollsBeforeStopping || (slot1_stoppedAt > 0 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
       slot2_current++;
-      lastSlotStoppedAt = index;
+      slot2_current = slot2_current > 5 ? 0 : slot2_current;
+      bmpDraw(images[slot2_current], 0, 0, tft);
+    } else {
+      slot2_stoppedAt = index;
     }
   
-    if (staggerTracker > 3 && index < lastSlotStoppedAt + 2 && slot3_current != slot3_end) {
-      bmpDraw(images[slot3_current], 0, 0, tft);
+    if (index > 3 && (index < minRollsBeforeStopping || (slot2_stoppedAt > 0 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
       slot3_current++;
+      slot3_current = slot3_current > 5 ? 0 : slot3_current;
+      bmpDraw(images[slot3_current], 0, 0, tft);
     }
   
     index++;
