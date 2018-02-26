@@ -38,9 +38,9 @@ Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
 Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
 Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC2, MOSI1, SCK1, -1, MISO1);
 
-#define NUM_SLOTS 6
-int slotState; //might not need but let's try it
-char* images[] = {"nyanf.bmp", "cheesef.bmp", "pinchyf.bmp", "firef.bmp", "tentf.bmp", "coinf.bmp"};
+#define NUM_SLOTS 6m
+int winState, slot1_current, slot2_current, slot3_current; //might not need but let's try it
+char* images[] = {"nyanf.bmp", "tentf.bmp", "coinf.bmp", "firef.bmp", "cheesef.bmp", "pinchyf.bmp"};
 
 // Onboard Teensy 3.6 SD Slot
 const uint8_t SD_CHIP_SELECT = SS;
@@ -96,48 +96,66 @@ void setup(void) {
 }
 
 void loop() {
-  rollSlots();
-}
-
-// Sets the slots rolling, picks an outcome and displays it
-void rollSlots(){
-  // For now do this in a serial read
+    // For now do this in a serial read
   Serial.print("\nPress any key to begin slots!\n");
 
   while (!Serial.available()) {
     SysCall::yield();
   }
-  
+
+  rollSlots();
+
+  doWinState();
+}
+
+// Sets the slots rolling, picks an outcome and displays it
+void rollSlots(){  
   // On rollSlots, we should iterate through 0-6 and set the slot to be whatever its current state is +1 (rolling over, so use %)
   // Also need to randomize a win state. States should be any of the 6 outcomes, or a total loss, or an almost loss (Trish has the odds)
   // On a result, save the global state of the slots. 
   // keep rolling the first slot til it gets where it needs to go. Then the second, then the third. (don't update the global state)
   // OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
 
-  int winState = random(0,2);
+  winState = random(1,20); 
   Serial.print("winState");
   Serial.print(winState);
 
-  //todo: flesh this out with actual odds and logic
-  switch(winState){
-    case 0:
-      slot1_end = slot2_end = slot3_end = 1;
-      break;
-    case 1:
-      int falseWinSlot = random(0,5);
-      slot1_end = slot2_end = falseWinSlot;
-      slot3_end = falseWinSlot + 1;
-    default: 
-      int falseWinSlot = random(0,5);
-      slot1_end = falseWinSlot - 1;
-      slot2_end = falseWinSlot;
-      slot3_end = falseWinSlot + 1;
-      break;
+  int slot1_end, slot2_end, slot3_end;
+  
+  if (winState <= 2) {
+    // nyancat
+    slot1_end = slot2_end = slot3_end = 0;
+  } else if (winState <= 4){
+    // tentacle
+    slot1_end = slot2_end = slot3_end = 1;
+  } else if (winState == 5) {
+    // coin
+    slot1_end = slot2_end = slot3_end = 2;
+  } else if (winState <= 7) {
+    // fire
+    slot1_end = slot2_end = slot3_end = 3;
+  } else if (winState <= 9) {
+    // cheesy poofs
+    slot1_end = slot2_end = slot3_end = 4;
+  } else if (winState == 10){
+    // pinchy
+    slot1_end = slot2_end = slot3_end = 5;
+  } else if (winState <= 15) {
+    // Partial fail
+    int falseWinSlot = random(0,5);
+    slot1_end = slot2_end = falseWinSlot;
+    slot3_end = falseWinSlot + 1;
+  } else {
+    // Total fail
+    int falseWinSlot = random(0,5);
+    slot1_end = falseWinSlot;
+    slot2_end = falseWinSlot + 1;
+    slot3_end = falseWinSlot + 2;
   }
   
   int index = 0;
   int lastSlotStoppedAt = 0;
-  int minRollsBeforeStopping = 12;
+  int minRollsBeforeStopping = 6;
 
   // while the min number of changes hasn't happened
   // AND the slots aren't in their final slots
@@ -145,36 +163,94 @@ void rollSlots(){
     // only let the first slot move for the first two iterations, then add the second for the next two, then start the third
     // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
 
+    slot1_current = slot1_current > 5 ? 0 : slot1_current;
+    slot2_current = slot2_current > 5 ? 0 : slot2_current;
+    slot3_current = slot3_current > 5 ? 0 : slot3_current;
+
     if (index < minRollsBeforeStopping && slot1_current != slot1_end){
+      bmpDraw(images[slot1_current], 0, 0, tft);
       slot1_current++;
-      bmpDraw(images[slot1_current % 5], 0, 0, tft);
       lastSlotStoppedAt = index; //todo: not sure we want to do this here every time. after this happens we should check if min has been reached and it's in the end state, THEN set lastSlotStoppedAt
     }
   
     if (staggerTracker > 1 && index < lastSlotStoppedAt + 2 && slot2_current != slot2_end) {
+      bmpDraw(images[slot2_current], 0, 0, tft);
       slot2_current++;
-      bmpDraw(images[slot2_current % 5], 0, 0, tft);
       lastSlotStoppedAt = index;
     }
   
     if (staggerTracker > 3 && index < lastSlotStoppedAt + 2 && slot3_current != slot3_end) {
+      bmpDraw(images[slot3_current], 0, 0, tft);
       slot3_current++;
-      bmpDraw(images[slot3_current % 5], 0, 0, tft);
     }
   
     index++;
   }
-
-  
-  
-  
-  
-  for(int i = 0; i < NUM_SLOTS; i++){
-    bmpDraw(images[i], 0, 0, tft);
-    bmpDraw(images[i], 0, 0, tft2);
-    bmpDraw(images[i], 0, 0, tft3);
-  }
 }
+
+void doWinState(){
+  //based on win state do sounds, fire, etc.
+  // same if/else as above, maybe consolidate somehow?
+  //TODO: could change image on screen for victory if we want
+  if (winState <= 2) {
+    // nyancat
+    //fire: 1-2-3-4-4-3-2-1
+    //LEDs: nyancat rainbow marquee
+    //Sound: nyancat
+  } else if (winState <= 4){
+    // tentacle
+    //fire: all at once
+    // LEDs: green
+    //Sound: person screaming
+  } else if (winState == 5) {
+    // coin
+    // fire: 1-3-2-4-all
+    //LEDs: Yellow
+    // sound: mario 1up/coin
+  } else if (winState <= 7) {
+    // fire
+    // fire all 4 x3
+    // LEDs: Red
+    // sound: highway to hell
+  } else if (winState <= 9) {
+    // cheesy poofs
+    // no fire
+    // LEDs: white
+    // Sound: cheesy poofs
+  } else if (winState == 10){
+    // pinchy
+    // fire all 4
+    // LEDs: Red
+    // Sound: PINCHAY
+  } 
+}
+
+void playSound(){
+  //sounds needed: nyancat, pinchy, person screaming (homer?), super mario coin/1up, highway to hell, cartman cheesy poofs
+}
+
+void doFire(){
+  //trigger the solenoids
+}
+
+void doTentacle(){
+  // Servo to trigger tentacle
+}
+
+void doCoin(){
+  // servo to trigger coin dispenser
+}
+
+void doLEDs(){
+  //RGB LED patterns
+}
+
+void doNyanCat(){
+  //playSound
+  //doLEDs
+}
+
+
 
 // This function opens a Windows Bitmap (BMP) file and
 // displays it at the given coordinates.  It's sped up
