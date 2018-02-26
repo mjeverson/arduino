@@ -24,7 +24,9 @@ Notes:
 //#include <Servo.h> // Tentacle & Coin
 //#include <TMRpcm.h> // Play Wav Files
 //#include <Wire.h> // Amp controller
- 
+
+//#define HANDLE A0 //handle mechanism
+
 //#define SOL1 13 // Solenoid Stuff
 //#define SOL2 14 // Solenoid Stuff
 //#define SOL3 15 // Solenoid Stuff
@@ -116,6 +118,9 @@ void setup(void) {
 //  Wire.begin(); // Amp
 //  setVolume(volume);
 
+  // Set up handle listener
+//  pinMode(HANDLE, INPUT);
+
   // Set up solenoid
 //  pinMode(SOL1, OUTPUT);
 //  pinMode(SOL2, OUTPUT);
@@ -129,18 +134,24 @@ void setup(void) {
   // Set up LEDs
 //  strip.begin();
 
-  //TODO: slots should start in random state. Randomize the starting position of the slots and display them
-  slotState = random(0,5);
-  slot1_current = slotState;
-  slot2_current = slotState + 1;
-  slot3_current = slotState + 2;
-  bmpDraw(images[slot1_current % 5], 0, 0, tft);
-  bmpDraw(images[slot2_current % 5], 0, 0, tft2);
-  bmpDraw(images[slot3_current % 5], 0, 0, tft3);
+  // Initialize slot state.
+  int slotState = random(0,5);
+  slot1_current = slotState % 5;
+  slot2_current = (slotState % 5) + 1;
+  slot3_current = (slotState % 5) + 2;
+  bmpDraw(images[slot1_current], 0, 0, tft);
+  bmpDraw(images[slot2_current], 0, 0, tft2);
+  bmpDraw(images[slot3_current], 0, 0, tft3);
 }
 
 void loop() {
-    // For now do this in a serial read
+    //TODO: Might need to use INPUT_PULLUP and swap while condition if this gives weird behaviour
+//    Serial.print("\nPull handle to begin slots!\n");
+//  while (!digitalRead(HANDLE)){
+//    SysCall::yield();
+//  }
+
+  // For now do this in a serial read. Normally will need to wait for handle mechanism
   Serial.print("\nPress any key to begin slots!\n");
 
   while (!Serial.available()) {
@@ -148,7 +159,6 @@ void loop() {
   }
 
   rollSlots();
-
   doWinState();
 }
 
