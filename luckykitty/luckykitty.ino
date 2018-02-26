@@ -25,21 +25,21 @@ Notes:
 //#include <TMRpcm.h> // Play Wav Files
 //#include <Wire.h> // Amp controller
 
-//#define HANDLE A0 //handle mechanism
+//#define HANDLE A1 //handle mechanism
 
-//#define SOL1 13 // Solenoid Stuff
-//#define SOL2 14 // Solenoid Stuff
-//#define SOL3 15 // Solenoid Stuff
-//#define SOL4 16 // Solenoid Stuff
+//#define SOL1 2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
+//#define SOL2 2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
+//#define SOL3 2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
+//#define SOL4 2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
 
-//#define SPEAKER 12
+//#define SPEAKER 2-10, 14, 16-17, 20-23, 29-30, 35-38
 //#define MAX9744_I2CADDR 0x4B
 //int volume = 31; // 0-63
 //TMRpcm tmrpcm; // wav Stuff
 
 //#define TENTACLE_SERVO 2-10, 14, 16-17, 20-23, 29-30, 35-38
 //#define COIN_SERVO 2-10, 14, 16-17, 20-23, 29-30, 35-38
-//#define NEOPIXEL 11 // LED Stuff
+//#define NEOPIXEL 2-10, 14, 16-17, 20-23, 29-30, 35-38 // LED Stuff
 
 // Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
 //Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
@@ -119,7 +119,7 @@ void setup(void) {
 //  setVolume(volume);
 
   // Set up handle listener
-//  pinMode(HANDLE, INPUT);
+//  pinMode(HANDLE, INPUT_PULLUP);
 
   // Set up solenoid
 //  pinMode(SOL1, OUTPUT);
@@ -145,9 +145,8 @@ void setup(void) {
 }
 
 void loop() {
-    //TODO: Might need to use INPUT_PULLUP and swap while condition if this gives weird behaviour
-//    Serial.print("\nPull handle to begin slots!\n");
-//  while (!digitalRead(HANDLE)){
+//  Serial.print("\nPull handle to begin slots!\n");
+//  while (digitalRead(HANDLE)){
 //    SysCall::yield();
 //  }
 
