@@ -11,6 +11,9 @@ Notes:
   - 565 raw file instead of bmp?
   - Raspberry pi?
 
+TODO: Threading!
+  https://github.com/ftrias/TeensyThreads
+
   References:
   //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
  ****************************************************/
