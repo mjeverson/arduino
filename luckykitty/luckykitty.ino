@@ -175,10 +175,19 @@ void rollSlots(){
   // keep rolling the first slot til it gets where it needs to go. Then the second, then the third. (don't update the global state)
   // OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
 
+  // Calculate win state
   winState = random(1,20); 
   Serial.println("winState");
   Serial.print(winState);
-
+  
+  // Calcuate partial fail slot displays
+  int falseWinSlot, falseWinSlotOdd;
+    
+  do {
+    falseWinSlot = random(0,5);
+    falseWinSlotOdd = random(0,5);
+  } while (falseWinSlot == falseWinSlotOdd);
+  
   int slot1_end, slot2_end, slot3_end;
   
   if (winState <= 2) {
@@ -199,17 +208,23 @@ void rollSlots(){
   } else if (winState == 10){
     // pinchy
     slot1_end = slot2_end = slot3_end = 5;
-  } else if (winState <= 15) {
-    // Partial fail
-    int falseWinSlot = random(0,5);
+  } else if (winState <= 12) {
+    // partial fail
     slot1_end = slot2_end = falseWinSlot;
-    slot3_end = falseWinSlot + 1;
+    slot3_end = falseWinSlotOdd;
+  } else if (winState <= 14) {
+    // Partial fail
+    slot1_end = slot3_end = falseWinSlot;
+    slot2_end = falseWinSlotOdd;
+  }else if (winState <= 16) {
+    // Partial fail
+    slot2_end = slot3_end = falseWinSlot;
+    slot1_end = falseWinSlotOdd;
   } else {
     // Total fail
-    int falseWinSlot = random(0,5);
     slot1_end = falseWinSlot;
-    slot2_end = falseWinSlot + 1;
-    slot3_end = falseWinSlot + 2;
+    slot2_end = falseWinSlotOdd;
+    slot3_end = random(0,5);
   }
 
   //TODO: Start playing rolling sound? Loop in the background until after?
@@ -256,7 +271,7 @@ void rollSlots(){
       Serial.print(slot2_end);
       Serial.println("");
       
-      bmpDraw(images[slot2_current], 0, 0, tft);
+      bmpDraw(images[slot2_current], 0, 0, tft2);
     } 
     
     if (index >= minRollsBeforeStopping && slot1_stoppedAt > -1 && index >= slot1_stoppedAt + 2 && slot2_current == slot2_end && slot2_stoppedAt == -1) {
@@ -274,7 +289,7 @@ void rollSlots(){
       Serial.print(slot3_end);
       Serial.println("");
       
-      bmpDraw(images[slot3_current], 0, 0, tft);
+      bmpDraw(images[slot3_current], 0, 0, tft3);
     }
   
     index++;
