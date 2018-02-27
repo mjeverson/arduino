@@ -153,12 +153,18 @@ void loop() {
   // For now do this in a serial read. Normally will need to wait for handle mechanism
   Serial.print("\nPress any key to begin slots!\n");
 
+  // Read any existing Serial data.
+
   while (!Serial.available()) {
     SysCall::yield();
   }
-
+  
   rollSlots();
   doWinState();
+
+  do {
+    delay(10);
+  } while (Serial.available() && Serial.read() >= 0);
 }
 
 // Sets the slots rolling, picks an outcome and displays it
@@ -170,7 +176,7 @@ void rollSlots(){
   // OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
 
   winState = random(1,20); 
-  Serial.print("winState");
+  Serial.println("winState");
   Serial.print(winState);
 
   int slot1_end, slot2_end, slot3_end;
@@ -214,34 +220,60 @@ void rollSlots(){
   int minRollsBeforeStopping = 5;
 
   // while the min number of changes hasn't happened AND the slots aren't in their final slots
-  while(index < minRollsBeforeStopping && slot1_current != slot1_end d&& slot2_current != slot2_end && slot3_current != slot3_end && index >= slot2_stoppedAt + 2) {
+  while(index < minRollsBeforeStopping || slot1_current != slot1_end || slot2_current != slot2_end || slot3_current != slot3_end || index < slot2_stoppedAt + 2) {
     // only let the first slot move for the first two iterations, then add the second for the next two, then start the third
     // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
 
-    Serial.println("index: ");
-    Serial.print(index);
+    Serial.print("index: ");
+    Serial.println(index);
 
     if (index < minRollsBeforeStopping || slot1_current != slot1_end){
       slot1_current++;
       slot1_current = slot1_current > 5 ? 0 : slot1_current;
+
+      Serial.print("Loading slot 1, is: ");
+      Serial.print(slot1_current);
+      Serial.print(" should be: ");
+      Serial.print(slot1_end);
+      Serial.println("");
+      
+      
       bmpDraw(images[slot1_current], 0, 0, tft);
-    } else {
+    }
+    
+    if (index >= minRollsBeforeStopping && slot1_current == slot1_end && slot1_stoppedAt == -1) {
       slot1_stoppedAt = index;
       Serial.println("slot 1 stopped at this index");
     }
   
-    if (index > 1 && (index < minRollsBeforeStopping || (slot1_stoppedAt > 0 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
+    if (index > 1 && (index < minRollsBeforeStopping || slot1_stoppedAt == -1 || (slot1_stoppedAt > -1 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
       slot2_current++;
       slot2_current = slot2_current > 5 ? 0 : slot2_current;
+
+      Serial.print("Loading slot 2, is: ");
+      Serial.print(slot2_current);
+      Serial.print(" should be: ");
+      Serial.print(slot2_end);
+      Serial.println("");
+      
       bmpDraw(images[slot2_current], 0, 0, tft);
-    } else {
+    } 
+    
+    if (index >= minRollsBeforeStopping && slot1_stoppedAt > -1 && index >= slot1_stoppedAt + 2 && slot2_current == slot2_end && slot2_stoppedAt == -1) {
       slot2_stoppedAt = index;
       Serial.println("slot 2 stopped at this index");
     }
-  
-    if (index > 3 && (index < minRollsBeforeStopping || (slot2_stoppedAt > 0 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
+    
+    if (index > 3 && (index < minRollsBeforeStopping || slot2_stoppedAt == -1  || (slot2_stoppedAt > -1 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
       slot3_current++;
       slot3_current = slot3_current > 5 ? 0 : slot3_current;
+
+      Serial.print("Loading slot 3, is: ");
+      Serial.print(slot3_current);
+      Serial.print(" should be: ");
+      Serial.print(slot3_end);
+      Serial.println("");
+      
       bmpDraw(images[slot3_current], 0, 0, tft);
     }
   
@@ -257,36 +289,36 @@ void doWinState(){
   //TODO: could change image on screen for victory if we want
   if (winState <= 2) {
     // nyancat
-    Serial.print("doWinState nyan");
+    Serial.println("doWinState nyan");
     //fire: 1-2-3-4-4-3-2-1
     //LEDs: nyancat rainbow marquee
     //Sound: nyancat
   } else if (winState <= 4){
-    Serial.print("doWinState tentacle");
+    Serial.println("doWinState tentacle");
     // tentacle
     //fire: all at once
     // LEDs: green
     //Sound: person screaming
   } else if (winState == 5) {
-    Serial.print("doWinState coin");
+    Serial.println("doWinState coin");
     // coin
     // fire: 1-3-2-4-all
     //LEDs: Yellow
     // sound: mario 1up/coin
   } else if (winState <= 7) {
-    Serial.print("doWinState fire");
+    Serial.println("doWinState fire");
     // fire
     // fire all 4 x3
     // LEDs: Red
     // sound: highway to hell
   } else if (winState <= 9) {
-    Serial.print("doWinState cheesy");
+    Serial.println("doWinState cheesy");
     // cheesy poofs
     // no fire
     // LEDs: white
     // Sound: cheesy poofs
   } else if (winState == 10){
-    Serial.print("doWinState pinchy");
+    Serial.println("doWinState pinchy");
     // pinchy
     // fire all 4
     // LEDs: Red
