@@ -218,12 +218,16 @@ void rollSlots(){
     // only let the first slot move for the first two iterations, then add the second for the next two, then start the third
     // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
 
+    Serial.println("index: ");
+    Serial.print(index);
+
     if (index < minRollsBeforeStopping || slot1_current != slot1_end){
       slot1_current++;
       slot1_current = slot1_current > 5 ? 0 : slot1_current;
       bmpDraw(images[slot1_current], 0, 0, tft);
     } else {
       slot1_stoppedAt = index;
+      Serial.println("slot 1 stopped at this index");
     }
   
     if (index > 1 && (index < minRollsBeforeStopping || (slot1_stoppedAt > 0 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
@@ -232,6 +236,7 @@ void rollSlots(){
       bmpDraw(images[slot2_current], 0, 0, tft);
     } else {
       slot2_stoppedAt = index;
+      Serial.println("slot 2 stopped at this index");
     }
   
     if (index > 3 && (index < minRollsBeforeStopping || (slot2_stoppedAt > 0 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
