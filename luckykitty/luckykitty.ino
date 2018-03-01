@@ -334,7 +334,7 @@ void doWinState(){
     //LEDs: nyancat rainbow marquee
     //Sound: nyancat
     //TODO: something like wait til all threads are done before continuing? threads.wait(n)
-    //TODO: Could also do a while where we just poll until all threads have completed, while(threads.getState(n) == RUNNING)){}
+    //TODO: Could also do a while where we just poll until all threads have completed, while(threads.getState(n) == Threads::RUNNING)){}
     //TODO: Do we need to clear thread_func_id once the thread ends?
   } else if (winState <= 4){
     Serial.println("doWinState tentacle");
