@@ -27,6 +27,7 @@ TODO: Threading!
 //#include <Servo.h> // Tentacle & Coin
 //#include <TMRpcm.h> // Play Wav Files
 //#include <Wire.h> // Amp controller
+//#include <TeensyThreads.h> // Threading
 
 //#define HANDLE A1 //handle mechanism
 
@@ -38,7 +39,7 @@ TODO: Threading!
 //#define SPEAKER 2-10, 14, 16-17, 20-23, 29-30, 35-38
 //#define MAX9744_I2CADDR 0x4B
 //int volume = 31; // 0-63
-//TMRpcm tmrpcm; // wav Stuff
+//TMRpcm audio; // wav Stuff
 
 //#define TENTACLE_SERVO 2-10, 14, 16-17, 20-23, 29-30, 35-38
 //#define COIN_SERVO 2-10, 14, 16-17, 20-23, 29-30, 35-38
@@ -80,6 +81,18 @@ const uint8_t SD_CHIP_SELECT = SS;
 // Faster library for SDIO
 SdFatSdioEX sd;
 
+// Thread test stuff
+int thread_func_id;
+
+void thread_func(){
+  while(true) {
+    Serial.print("\nThis is in a thread with ID: ");
+    Serial.print(thread_func_id + "\n");
+    threads.delay(500);
+  }
+}
+
+// Get this party started!
 void setup(void) {
   // Sets up the RNG
   randomSeed(analogRead(A0));
@@ -118,7 +131,7 @@ void setup(void) {
   Serial.print(t);
 
   // Set up sound player
-//  tmrpcm.speakerPin = SPEAKER;
+//  audio.speakerPin = SPEAKER;
 //  Wire.begin(); // Amp
 //  setVolume(volume);
 
@@ -135,8 +148,11 @@ void setup(void) {
 //  tentacleServo.attach(TENTACLE_SERVO);
 //  coinServo.attach(COIN_SERVO);
 
-  // Set up LEDs
+  // Set up LEDs. Some default colour to indicate ready to go
 //  strip.begin();
+
+  // Start a test thread to do some stuff
+  thread_func_id = threads.addThread(thread_func, 1);
 
   // Initialize slot state.
   slot1_current = random(0,5);
@@ -157,7 +173,6 @@ void loop() {
   Serial.print("\nPress any key to begin slots!\n");
 
   // Read any existing Serial data.
-
   while (!Serial.available()) {
     SysCall::yield();
   }
@@ -168,6 +183,10 @@ void loop() {
   do {
     delay(10);
   } while (Serial.available() && Serial.read() >= 0);
+
+  // Kill the test thread
+  //TODO: Do we need to clear thread_func_id once the thread ends?
+  threads.kill(thread_func_id);
 }
 
 // Sets the slots rolling, picks an outcome and displays it
@@ -231,6 +250,8 @@ void rollSlots(){
   }
 
   //TODO: Start playing rolling sound? Loop in the background until after?
+//  audio.loop(1);
+//  audio.play("roll.wav");
   
   int index = 0;
   int slot1_stoppedAt = -1;
@@ -242,8 +263,8 @@ void rollSlots(){
     // only let the first slot move for the first two iterations, then add the second for the next two, then start the third
     // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
 
-    Serial.print("index: ");
-    Serial.println(index);
+    Serial.print("\n index: ");
+    Serial.print(index + "\n");
 
     if (index < minRollsBeforeStopping || slot1_current != slot1_end){
       slot1_current++;
@@ -251,10 +272,9 @@ void rollSlots(){
 
       Serial.print("Loading slot 1, is: ");
       Serial.print(slot1_current);
-      Serial.print(" should be: ");
+      Serial.print(", should be: ");
       Serial.print(slot1_end);
       Serial.println("");
-      
       
       bmpDraw(images[slot1_current], 0, 0, tft);
     }
@@ -299,6 +319,8 @@ void rollSlots(){
   }
 
   //TODO: Stop playing rolling sound?
+  //  audio.loop(0);
+  //  audio.disable("roll.wav");
 }
 
 void doWinState(){
@@ -311,6 +333,9 @@ void doWinState(){
     //fire: 1-2-3-4-4-3-2-1
     //LEDs: nyancat rainbow marquee
     //Sound: nyancat
+    //TODO: something like wait til all threads are done before continuing? threads.wait(n)
+    //TODO: Could also do a while where we just poll until all threads have completed, while(threads.getState(n) == RUNNING)){}
+    //TODO: Do we need to clear thread_func_id once the thread ends?
   } else if (winState <= 4){
     Serial.println("doWinState tentacle");
     // tentacle
@@ -342,14 +367,22 @@ void doWinState(){
     // LEDs: Red
     // Sound: PINCHAY
   } 
+
+  resetState();
+}
+
+void resetState(){
+  //TODO: Set everything back to normal state for another round
+  Serial.println("Round over, state reset!");
 }
 
 void playSound(){
   //sounds needed: nyancat, pinchy, person screaming (homer?), super mario coin/1up, highway to hell, cartman cheesy poofs, slot rolling sound mario kart?
-  //tmrpcm.play("nyancat.wav");
+  //audio.play("nyancat.wav");
 }
 
 void doFire(){
+  1-2-3-4-4-3-2-1
   //trigger the solenoids
 //  digitalWrite(SOL1, HIGH);
 //  delay(1000);
