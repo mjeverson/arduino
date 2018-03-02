@@ -24,17 +24,19 @@ TODO: Threading!
 #include <SPI.h>
 #include "SdFat.h"
 //#include <Adafruit_NeoPixel.h> // LED Stuff
-//#include <Servo.h> // Tentacle & Coin
+#include <Servo.h> // Tentacle & Coin
 //#include <TMRpcm.h> // Play Wav Files
-//#include <Wire.h> // Amp controller
+#include <Wire.h> // Amp controller
 #include <TeensyThreads.h> // Threading
 
-//#define HANDLE A1 //handle mechanism
+// Handle mechanism
+#define HANDLE A1 
 
-#define SOL1 20//2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
-#define SOL2 21//2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
-#define SOL3 22//2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
-#define SOL4 23//2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
+// Solenoids
+#define SOL1 20
+#define SOL2 21
+#define SOL3 22
+#define SOL4 23
 
 //#define SPEAKER 2-10, 14, 16-17, 20-23, 29-30, 35-38
 //#define MAX9744_I2CADDR 0x4B
@@ -70,6 +72,13 @@ Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
 Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
 Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC2, MOSI1, SCK1, -1, MISO1);
 
+#define WINSTATE_NONE 0
+#define WINSTATE_NYAN 1
+#define WINSTATE_TENTACLE 2
+#define WINSTATE_COIN 3
+#define WINSTATE_FIRE 4
+#define WINSTATE_CHEESY 5
+#define WINSTATE_PINCHY 6
 #define NUM_SLOTS 6
 int winState, slot1_current, slot2_current, slot3_current; 
 char* images[] = {"nyanf.bmp", "tentf.bmp", "coinf.bmp", "firef.bmp", "cheesef.bmp", "pinchyf.bmp"};
@@ -86,6 +95,7 @@ int thread_func_id;
 
 void thread_func(){
   while(true) {
+    //TODO: Issues with using Serial in a thread. There's something else available to handle this in the thread docs if we need it
     Serial.print("\nThis is in a thread with ID: ");
     Serial.print(thread_func_id);
     threads.delay(500);
@@ -93,7 +103,7 @@ void thread_func(){
 }
 
 // Get this party started!
-void setup(void) {
+void setup() {
   // Sets up the RNG
   randomSeed(analogRead(A0));
   
@@ -200,9 +210,9 @@ void rollSlots(){
   // OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
 
   // Calculate win state
-  winState = random(1,20); 
-  Serial.println("winState");
-  Serial.print(winState);
+  int winRoll = random(1,20); 
+  Serial.println("winRoll: ");
+  Serial.print(winRoll);
   
   // Calcuate partial fail slot displays
   int falseWinSlot, falseWinSlotOdd;
@@ -214,38 +224,48 @@ void rollSlots(){
   
   int slot1_end, slot2_end, slot3_end;
   
-  if (winState <= 2) {
+  if (winRoll <= 2) {
     // nyancat
+    winState = WINSTATE_NYAN;
     slot1_end = slot2_end = slot3_end = 0;
-  } else if (winState <= 4){
+  } else if (winRoll <= 4){
     // tentacle
+    winState = WINSTATE_TENTACLE;
     slot1_end = slot2_end = slot3_end = 1;
-  } else if (winState == 5) {
+  } else if (winRoll == 5) {
     // coin
+    winState = WINSTATE_COIN;
     slot1_end = slot2_end = slot3_end = 2;
-  } else if (winState <= 7) {
+  } else if (winRoll <= 7) {
     // fire
+    winState = WINSTATE_FIRE;
     slot1_end = slot2_end = slot3_end = 3;
-  } else if (winState <= 9) {
+  } else if (winRoll <= 9) {
     // cheesy poofs
+    winState = WINSTATE_CHEESY;
     slot1_end = slot2_end = slot3_end = 4;
-  } else if (winState == 10){
+  } else if (winRoll == 10){
     // pinchy
+    winState = WINSTATE_PINCHY;
     slot1_end = slot2_end = slot3_end = 5;
-  } else if (winState <= 12) {
+  } else if (winRoll <= 12) {
     // partial fail
+    winState = WINSTATE_NONE;
     slot1_end = slot2_end = falseWinSlot;
     slot3_end = falseWinSlotOdd;
-  } else if (winState <= 14) {
+  } else if (winRoll <= 14) {
     // Partial fail
+    winState = WINSTATE_NONE;
     slot1_end = slot3_end = falseWinSlot;
     slot2_end = falseWinSlotOdd;
-  }else if (winState <= 16) {
+  }else if (winRoll <= 16) {
     // Partial fail
+    winState = WINSTATE_NONE;
     slot2_end = slot3_end = falseWinSlot;
     slot1_end = falseWinSlotOdd;
   } else {
     // Total fail
+    winState = WINSTATE_NONE;
     slot1_end = falseWinSlot;
     slot2_end = falseWinSlotOdd;
     slot3_end = random(0,5);
@@ -327,47 +347,140 @@ void rollSlots(){
 
 void doWinState(){
   //based on win state do sounds, fire, etc.
-  //TODO: same if/else as above, maybe consolidate somehow?
+  //TODO: Swap from integer winState to an enumerator
   //TODO: could change image on screen for victory if we want
-  if (winState <= 2) {
+  if (winState == WINSTATE_NYAN) {
     // nyancat
     Serial.println("doWinState nyan");
-    //fire: 1-2-3-4-4-3-2-1
-    //LEDs: nyancat rainbow marquee
-    //Sound: nyancat
+    
+    //  digitalWrite(SOL1, HIGH);
+    //  delay(500);
+    //  digitalWrite(SOL1, LOW);
+    //  delay(500);
+    //  digitalWrite(SOL2, HIGH);
+    //  delay(500);
+    //  digitalWrite(SOL2, LOW);
+    //  delay(500);
+    //  digitalWrite(SOL3, HIGH);
+    //  delay(500);
+    //  digitalWrite(SOL3, LOW);
+    //  delay(500);
+    //  digitalWrite(SOL4, HIGH);
+    //  delay(500);
+    //  digitalWrite(SOL4, LOW);
+    //  delay(500);
+    
+    //TODO: LEDs: nyancat rainbow marquee
+    
+    //TODO:Sound: nyancat
+    
     //TODO: something like wait til all threads are done before continuing? threads.wait(n)
     //TODO: Could also do a while where we just poll until all threads have completed, while(threads.getState(n) == Threads::RUNNING)){}
     //TODO: Do we need to clear thread_func_id once the thread ends?
-  } else if (winState <= 4){
+  } else if (winState == WINSTATE_TENTACLE) {
     Serial.println("doWinState tentacle");
     // tentacle
+    
     //fire: all at once
-    // LEDs: green
-    //Sound: person screaming
-  } else if (winState == 5) {
+    //  digitalWrite(SOL1, HIGH);
+    //  digitalWrite(SOL2, HIGH);
+    //  digitalWrite(SOL3, HIGH);
+    //  digitalWrite(SOL4, HIGH);
+    //  delay(500);
+    //  digitalWrite(SOL1, LOW);
+    //  digitalWrite(SOL2, LOW);
+    //  digitalWrite(SOL3, LOW);
+    //  digitalWrite(SOL4, LOW);
+    
+    //TODO: LEDs: green
+    
+    //TODO: Sound: person screaming
+    
+  } else if (winState == WINSTATE_COIN) {
     Serial.println("doWinState coin");
     // coin
+    
     // fire: 1-3-2-4-all
-    //LEDs: Yellow
-    // sound: mario 1up/coin
-  } else if (winState <= 7) {
+//    digitalWrite(SOL1, HIGH);
+//    delay(500);
+//    digitalWrite(SOL1, LOW);
+//    delay(500);
+//    digitalWrite(SOL2, HIGH);
+//    delay(500);
+//    digitalWrite(SOL2, LOW);
+//    delay(500);
+//    digitalWrite(SOL3, HIGH);
+//    delay(500);
+//    digitalWrite(SOL3, LOW);
+//    delay(500);
+//    digitalWrite(SOL4, HIGH);
+//    delay(500);
+//    digitalWrite(SOL4, LOW);
+//    delay(500);
+//    digitalWrite(SOL1, HIGH);
+//    digitalWrite(SOL2, HIGH);
+//    digitalWrite(SOL3, HIGH);
+//    digitalWrite(SOL4, HIGH);
+//    delay(500);
+//    digitalWrite(SOL1, LOW);
+//    digitalWrite(SOL2, LOW);
+//    digitalWrite(SOL3, LOW);
+//    digitalWrite(SOL4, LOW);
+    
+    //TODO: LEDs: Yellow
+    
+    //TODO: sound: mario 1up/coin
+    
+  } else if (winState == WINSTATE_FIRE) {
     Serial.println("doWinState fire");
     // fire
+    
     // fire all 4 x3
-    // LEDs: Red
-    // sound: highway to hell
-  } else if (winState <= 9) {
+//    for (int i = 0; i< 3; i++){
+//        digitalWrite(SOL1, HIGH);
+//        digitalWrite(SOL2, HIGH);
+//        digitalWrite(SOL3, HIGH);
+//        digitalWrite(SOL4, HIGH);
+//        delay(500);
+//        digitalWrite(SOL1, LOW);
+//        digitalWrite(SOL2, LOW);
+//        digitalWrite(SOL3, LOW);
+//        digitalWrite(SOL4, LOW);
+//        delay(500);
+//    }
+    
+    //TODO: LEDs: Red
+    //TODO: sound: highway to hell
+  } else if (winState == WINSTATE_CHEESY) {
     Serial.println("doWinState cheesy");
     // cheesy poofs
+    
     // no fire
-    // LEDs: white
-    // Sound: cheesy poofs
-  } else if (winState == 10){
+    
+    //TODO: LEDs: white
+    
+    //TODO: Sound: cheesy poofs
+    
+  } else if (winState == WINSTATE_PINCHY) {
     Serial.println("doWinState pinchy");
     // pinchy
+    
     // fire all 4
-    // LEDs: Red
-    // Sound: PINCHAY
+//    digitalWrite(SOL1, HIGH);
+//    digitalWrite(SOL2, HIGH);
+//    digitalWrite(SOL3, HIGH);
+//    digitalWrite(SOL4, HIGH);
+//    delay(500);
+//    digitalWrite(SOL1, LOW);
+//    digitalWrite(SOL2, LOW);
+//    digitalWrite(SOL3, LOW);
+//    digitalWrite(SOL4, LOW);
+//    delay(500);
+
+    //TODO: LEDs: Red
+    
+    //TODO: Sound: PINCHAY
+    
   } 
 
   resetState();
@@ -376,15 +489,18 @@ void doWinState(){
 void resetState(){
   //TODO: Set everything back to normal state for another round
   Serial.println("Round over, state reset!");
+  winState = WINSTATE_NONE;
 }
 
 void playSound(){
   //sounds needed: nyancat, pinchy, person screaming (homer?), super mario coin/1up, highway to hell, cartman cheesy poofs, slot rolling sound mario kart?
+  
+  //audio.loop(0);
   //audio.play("nyancat.wav");
 }
 
+//trigger the solenoids
 void doFire(){
-  //trigger the solenoids
 //  digitalWrite(SOL1, HIGH);
 //  delay(500);
 //  digitalWrite(SOL1, LOW);
