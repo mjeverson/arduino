@@ -151,9 +151,6 @@ void setup(void) {
   // Set up LEDs. Some default colour to indicate ready to go
 //  strip.begin();
 
-  // Start a test thread to do some stuff
-  thread_func_id = threads.addThread(thread_func, 1);
-
   // Initialize slot state.
   slot1_current = random(0,5);
   slot2_current = random(0,5);
@@ -176,6 +173,9 @@ void loop() {
   while (!Serial.available()) {
     SysCall::yield();
   }
+
+  // Start a test thread to do some stuff
+  thread_func_id = threads.addThread(thread_func, 1);
   
   rollSlots();
   doWinState();
