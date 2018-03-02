@@ -27,14 +27,14 @@ TODO: Threading!
 //#include <Servo.h> // Tentacle & Coin
 //#include <TMRpcm.h> // Play Wav Files
 //#include <Wire.h> // Amp controller
-//#include <TeensyThreads.h> // Threading
+#include <TeensyThreads.h> // Threading
 
 //#define HANDLE A1 //handle mechanism
 
-//#define SOL1 2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
-//#define SOL2 2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
-//#define SOL3 2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
-//#define SOL4 2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
+#define SOL1 20//2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
+#define SOL2 21//2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
+#define SOL3 22//2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
+#define SOL4 23//2-10, 14, 16-17, 20-23, 29-30, 35-38 // Solenoid Stuff
 
 //#define SPEAKER 2-10, 14, 16-17, 20-23, 29-30, 35-38
 //#define MAX9744_I2CADDR 0x4B
@@ -87,7 +87,7 @@ int thread_func_id;
 void thread_func(){
   while(true) {
     Serial.print("\nThis is in a thread with ID: ");
-    Serial.print(thread_func_id + "\n");
+    Serial.print(thread_func_id);
     threads.delay(500);
   }
 }
@@ -139,10 +139,10 @@ void setup(void) {
 //  pinMode(HANDLE, INPUT_PULLUP);
 
   // Set up solenoid
-//  pinMode(SOL1, OUTPUT);
-//  pinMode(SOL2, OUTPUT);
-//  pinMode(SOL3, OUTPUT);
-//  pinMode(SOL4, OUTPUT);
+  pinMode(SOL1, OUTPUT);
+  pinMode(SOL2, OUTPUT);
+  pinMode(SOL3, OUTPUT);
+  pinMode(SOL4, OUTPUT);
 
   //Set up servos
 //  tentacleServo.attach(TENTACLE_SERVO);
@@ -186,6 +186,8 @@ void loop() {
 
   // Kill the test thread
   //TODO: Do we need to clear thread_func_id once the thread ends?
+  Serial.print("\nkilling thread: ");
+  Serial.print(thread_func_id);
   threads.kill(thread_func_id);
 }
 
@@ -382,15 +384,23 @@ void playSound(){
 }
 
 void doFire(){
-  1-2-3-4-4-3-2-1
   //trigger the solenoids
 //  digitalWrite(SOL1, HIGH);
-//  delay(1000);
+//  delay(500);
 //  digitalWrite(SOL1, LOW);
 //  delay(500);
 //  digitalWrite(SOL2, HIGH);
-//  delay(1000);
+//  delay(500);
 //  digitalWrite(SOL2, LOW);
+//  delay(500);
+//  digitalWrite(SOL3, HIGH);
+//  delay(500);
+//  digitalWrite(SOL3, LOW);
+//  delay(500);
+//  digitalWrite(SOL4, HIGH);
+//  delay(500);
+//  digitalWrite(SOL4, LOW);
+//  delay(500);
 }
 
 void doTentacle(){
