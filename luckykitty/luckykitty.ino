@@ -23,11 +23,11 @@ TODO: Threading!
 //#include <HX8357_t3.h> // Hardware-specific library. Faster, but doesn't seem to render the image on the screen?
 #include <SPI.h>
 #include "SdFat.h"
-//#include <Adafruit_NeoPixel.h> // LED Stuff
 #include <Servo.h> // Tentacle & Coin
-//#include <TMRpcm.h> // Play Wav Files
 #include <Wire.h> // Amp controller
 #include <TeensyThreads.h> // Threading
+//#include <Adafruit_NeoPixel.h> // LED Stuff
+//#include <TMRpcm.h> // Play Wav Files
 
 // Handle mechanism
 #define HANDLE A1 
@@ -185,20 +185,20 @@ void loop() {
   }
 
   // Start a test thread to do some stuff
-  thread_func_id = threads.addThread(thread_func, 1);
+//  thread_func_id = threads.addThread(thread_func, 1);
   
   rollSlots();
   doWinState();
+  resetState();
 
   do {
     delay(10);
   } while (Serial.available() && Serial.read() >= 0);
 
   // Kill the test thread
-  //TODO: Do we need to clear thread_func_id once the thread ends?
-  Serial.print("\nkilling thread: ");
-  Serial.print(thread_func_id);
-  threads.kill(thread_func_id);
+//  Serial.print("\nkilling thread: ");
+//  Serial.print(thread_func_id);
+//  threads.kill(thread_func_id);
 }
 
 // Sets the slots rolling, picks an outcome and displays it
@@ -482,8 +482,6 @@ void doWinState(){
     //TODO: Sound: PINCHAY
     
   } 
-
-  resetState();
 }
 
 void resetState(){
