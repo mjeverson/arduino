@@ -15,6 +15,9 @@ TODO: Threading!
   https://github.com/ftrias/TeensyThreads
 
 TODO: Might have some threading issues wherever we use delay()
+#include "SdFat.h" //not compatible with audio OOB may need to do some stuff
+Also might need to swap to 16bit 44k
+//todo: probably need a 2nd SD card to read in parallel with images
 
   References:
   //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
@@ -24,12 +27,12 @@ TODO: Might have some threading issues wherever we use delay()
 #include "Adafruit_HX8357.h"
 //#include <HX8357_t3.h> // Hardware-specific library. Faster, but doesn't seem to render the image on the screen?
 #include <SPI.h>
-#include "SdFat.h"
+#include "SdFat.h" //not compatible with audio OOB may need to do some stuff
 #include <Servo.h> // Tentacle & Coin
 #include <Wire.h> // Amp controller
 #include <TeensyThreads.h> // Threading
 //#include <Adafruit_NeoPixel.h> // LED Stuff
-//#include <TMRpcm.h> // Play Wav Files
+#include <Audio.h>
 
 // Handle mechanism
 #define HANDLE A1 
@@ -40,10 +43,12 @@ TODO: Might have some threading issues wherever we use delay()
 #define SOL3 22
 #define SOL4 23
 
-//#define SPEAKER 2-10, 14, 16-17, 20-23, 29-30, 35-38
-//#define MAX9744_I2CADDR 0x4B
-//int volume = 31; // 0-63
-//TMRpcm audio; // wav Stuff
+#define SPEAKER 37//2-10, 14, 16-17, 20-23, 29-30, 35-38
+#define MAX9744_I2CADDR 0x4B
+int volume = 20; // 0-63
+AudioPlaySdWav playWav1;
+AudioOutputAnalog audioOutput;
+AudioConnection patchCord1(playWav1, 0, audioOutput, 0);
 
 #define TENTACLE_SERVO 35//2-10, 14, 16-17, 20-23, 29-30, 35-38
 #define COIN_SERVO 36//2-10, 14, 16-17, 20-23, 29-30, 35-38
@@ -110,8 +115,6 @@ void setup() {
   randomSeed(analogRead(A0));
   
   Serial.begin(9600);
-  Serial.println("SdFat version: ");
-  Serial.print(SD_FAT_VERSION);
 
   // Sets up the TFT screens
   tft.begin(HX8357D);
@@ -144,8 +147,10 @@ void setup() {
 
   // Set up sound player
 //  audio.speakerPin = SPEAKER;
-//  Wire.begin(); // Amp
-//  setVolume(volume);
+  Wire.begin(); // Amp
+  setVolume(volume);
+  AudioMemory(8);
+  Serial.print("set up speaker volume!");
 
   // Set up handle listener
 //  pinMode(HANDLE, INPUT_PULLUP);
@@ -167,12 +172,12 @@ void setup() {
   resetState();
 
   // Initialize slot state.
-//  slot1_current = random(0,5);
-//  slot2_current = random(0,5);
-//  slot3_current = random(0,5);
-//  bmpDraw(images[slot1_current], 0, 0, tft);
-//  bmpDraw(images[slot2_current], 0, 0, tft2);
-//  bmpDraw(images[slot3_current], 0, 0, tft3);
+  slot1_current = random(0,5);
+  slot2_current = random(0,5);
+  slot3_current = random(0,5);
+  bmpDraw(images[slot1_current], 0, 0, tft);
+  bmpDraw(images[slot2_current], 0, 0, tft2);
+  bmpDraw(images[slot3_current], 0, 0, tft3);
 }
 
 void loop() {
@@ -185,18 +190,27 @@ void loop() {
   Serial.print("\nPress any key to begin slots!\n");
 
   // Read any existing Serial data.
-  while (!Serial.available()) {
-    SysCall::yield();
+  while (!Serial.available()) {}
+
+  //test audio
+  File file;
+
+  if(file = sd.open("nyan16.wav")){
+    Serial.print("About to play audio!");
+    playWav1.play(file);
   }
 
-  doTentacle();
-  doCoin();
+  delay(5000);
+  playWav1.stop();
+
+//  doTentacle();
+//  doCoin();
 
   // Start a test thread to do some stuff
 //  thread_func_id = threads.addThread(thread_func, 1);
   
-//  rollSlots();
-//  doWinState();
+  rollSlots();
+  doWinState();
   resetState();
 
   do {
@@ -573,14 +587,14 @@ void doLEDs(){
 // Setting the volume is very simple! 
 void setVolume(int v) {
   // cant be higher than 63 or lower than 0
-//  if (v > 63) v = 63;
-//  if (v < 0) v = 0;
-//  
-//  Serial.print("Setting volume to ");
-//  Serial.println(v);
-//  Wire.beginTransmission(MAX9744_I2CADDR);
-//  Wire.write(v);
-//  Wire.endTransmission();
+  if (v > 63) v = 63;
+  if (v < 0) v = 0;
+  
+  Serial.print("Setting volume to ");
+  Serial.println(v);
+  Wire.beginTransmission(MAX9744_I2CADDR);
+  Wire.write(v);
+  Wire.endTransmission();
 }
 
 
