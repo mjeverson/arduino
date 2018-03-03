@@ -15,9 +15,8 @@ TODO: Threading!
   https://github.com/ftrias/TeensyThreads
 
 TODO: Might have some threading issues wherever we use delay()
-#include "SdFat.h" //not compatible with audio OOB may need to do some stuff
-Also might need to swap to 16bit 44k
-//todo: probably need a 2nd SD card to read in parallel with images
+//todo: probably need a 2nd SD card to read in parallel with images. Test the SD card reader with nothing else on SPI1, if that works we can try SPI2 
+//todo: alternatively, try buffering wav files in memory if there's room? <250kb per sound byte would work, maybe even try smaller wavs or mp3s or something?
 
   References:
   //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
@@ -45,7 +44,7 @@ Also might need to swap to 16bit 44k
 
 #define SPEAKER 37//2-10, 14, 16-17, 20-23, 29-30, 35-38
 #define MAX9744_I2CADDR 0x4B
-int volume = 20; // 0-63
+//int volume = 20; // 0-63
 AudioPlaySdWav playWav1;
 AudioOutputAnalog audioOutput;
 AudioConnection patchCord1(playWav1, 0, audioOutput, 0);
@@ -93,9 +92,11 @@ char* sounds[] = {"nyan.wav", "scream.wav", "mario.wav", "hth.wav", "cheesy.wav"
 
 // Onboard Teensy 3.6 SD Slot
 const uint8_t SD_CHIP_SELECT = SS;
+const uint8_t SOUND_SD_CHIP_SELECT = 31;
 
 // Faster library for SDIO
 SdFatSdioEX sd;
+SdFatSoftSpi<MISO1, MOSI1, SCK1> sd2;
 
 // Thread test stuff
 int thread_func_id;
@@ -130,15 +131,31 @@ void setup() {
   Serial.println("Initializing SD card...");
   uint32_t t = millis();
 
+  // disable sd2 while initializing sd1
+  pinMode(SOUND_SD_CHIP_SELECT, OUTPUT);
+//  digitalWrite(SOUND_SD_CHIP_SELECT, HIGH);
+
   if (!sd.cardBegin()) {
-    Serial.println("\ncardBegin failed");
+    Serial.println("\nArt cardBegin failed");
     return;
   }
 
   if (!sd.fsBegin()) {
-    Serial.println("\nFile System initialization failed.\n");
+    Serial.println("\nArt File System initialization failed.\n");
     return;
   }
+
+//  SPI.setMOSI(MOS1);
+//  SPI.setSCK(SCK1);
+  if (!sd2.begin(SOUND_SD_CHIP_SELECT)) {
+    Serial.println("\nSound cardBegin failed");
+//    return;
+  }
+
+//  if (!sd2.fsBegin()) {
+//    Serial.println("\nSound File System initialization failed.\n");
+//    return;
+//  }
 
   t = millis() - t;
   
@@ -146,9 +163,7 @@ void setup() {
   Serial.print(t);
 
   // Set up sound player
-//  audio.speakerPin = SPEAKER;
-  Wire.begin(); // Amp
-  setVolume(volume);
+  Wire.begin(); 
   AudioMemory(8);
   Serial.print("set up speaker volume!");
 
@@ -193,15 +208,12 @@ void loop() {
   while (!Serial.available()) {}
 
   //test audio
-  File file;
-
-  if(file = sd.open("nyan16.wav")){
-    Serial.print("About to play audio!");
-    playWav1.play(file);
-  }
-
-  delay(5000);
-  playWav1.stop();
+//  File file;
+//
+//  if(file = sd.open("nyan16.wav")){
+//    Serial.print("About to play audio!");
+//    playWav1.play(file);
+//  }
 
 //  doTentacle();
 //  doCoin();
@@ -356,7 +368,7 @@ void rollSlots(){
       Serial.print(slot3_end);
       Serial.println("");
       
-      bmpDraw(images[slot3_current], 0, 0, tft3);
+//      bmpDraw(images[slot3_current], 0, 0, tft3);
     }
   
     index++;
@@ -585,17 +597,17 @@ void doLEDs(){
 }
 
 // Setting the volume is very simple! 
-void setVolume(int v) {
-  // cant be higher than 63 or lower than 0
-  if (v > 63) v = 63;
-  if (v < 0) v = 0;
-  
-  Serial.print("Setting volume to ");
-  Serial.println(v);
-  Wire.beginTransmission(MAX9744_I2CADDR);
-  Wire.write(v);
-  Wire.endTransmission();
-}
+//void setVolume(int v) {
+//  // cant be higher than 63 or lower than 0
+//  if (v > 63) v = 63;
+//  if (v < 0) v = 0;
+//  
+//  Serial.print("Setting volume to ");
+//  Serial.println(v);
+//  Wire.beginTransmission(MAX9744_I2CADDR);
+//  Wire.write(v);
+//  Wire.endTransmission();
+//}
 
 
 // This function opens a Windows Bitmap (BMP) file and
