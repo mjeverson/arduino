@@ -14,6 +14,8 @@ Notes:
 TODO: Threading!
   https://github.com/ftrias/TeensyThreads
 
+TODO: Might have some threading issues wherever we use delay()
+
   References:
   //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
  ****************************************************/
@@ -43,17 +45,17 @@ TODO: Threading!
 //int volume = 31; // 0-63
 //TMRpcm audio; // wav Stuff
 
-//#define TENTACLE_SERVO 2-10, 14, 16-17, 20-23, 29-30, 35-38
-//#define COIN_SERVO 2-10, 14, 16-17, 20-23, 29-30, 35-38
+#define TENTACLE_SERVO 35//2-10, 14, 16-17, 20-23, 29-30, 35-38
+#define COIN_SERVO 36//2-10, 14, 16-17, 20-23, 29-30, 35-38
 //#define NEOPIXEL 2-10, 14, 16-17, 20-23, 29-30, 35-38 // LED Stuff
 
 // Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
 //Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
 
-//Servo tentacleServo;
-//Servo coinServo;  
-//int tentacleServoPos = 0;
-//int coinServoPos = 0;
+Servo tentacleServo;
+Servo coinServo;  
+int tentacleServoPos = 0;
+int coinServoPos = 0;
 
 // screens 1 and 2 are on the spi0 bus (mosi 11, miso 12, sck 13) screen 3 is on spi1 (mosi 0, miso 1, sck 32)
 #define TFT_DC 24
@@ -155,19 +157,22 @@ void setup() {
   pinMode(SOL4, OUTPUT);
 
   //Set up servos
-//  tentacleServo.attach(TENTACLE_SERVO);
-//  coinServo.attach(COIN_SERVO);
+  tentacleServo.attach(TENTACLE_SERVO);
+  coinServo.attach(COIN_SERVO);
 
   // Set up LEDs. Some default colour to indicate ready to go
 //  strip.begin();
 
+  // Initializes the state of the peripherals
+  resetState();
+
   // Initialize slot state.
-  slot1_current = random(0,5);
-  slot2_current = random(0,5);
-  slot3_current = random(0,5);
-  bmpDraw(images[slot1_current], 0, 0, tft);
-  bmpDraw(images[slot2_current], 0, 0, tft2);
-  bmpDraw(images[slot3_current], 0, 0, tft3);
+//  slot1_current = random(0,5);
+//  slot2_current = random(0,5);
+//  slot3_current = random(0,5);
+//  bmpDraw(images[slot1_current], 0, 0, tft);
+//  bmpDraw(images[slot2_current], 0, 0, tft2);
+//  bmpDraw(images[slot3_current], 0, 0, tft3);
 }
 
 void loop() {
@@ -184,11 +189,14 @@ void loop() {
     SysCall::yield();
   }
 
+  doTentacle();
+  doCoin();
+
   // Start a test thread to do some stuff
 //  thread_func_id = threads.addThread(thread_func, 1);
   
-  rollSlots();
-  doWinState();
+//  rollSlots();
+//  doWinState();
   resetState();
 
   do {
@@ -488,6 +496,11 @@ void resetState(){
   //TODO: Set everything back to normal state for another round
   Serial.println("Round over, state reset!");
   winState = WINSTATE_NONE;
+  tentacleServo.write(0);
+  coinServo.write(0);
+  //TODO: reset LEDs
+  //TODO: Stop audio
+  //TODO: Any other variables that need resetting
 }
 
 void playSound(){
@@ -518,21 +531,31 @@ void doFire(){
 }
 
 void doTentacle(){
-  // Servo to trigger tentacle
-//  for(tentacleServoPos = 10; tentacleServoPos < 170; tentacleServoPos += 1) 
-//  {                                  
-//    tentacleServo.write(tentacleServoPos); 
-//    delay(15);                      
-//  } 
+  //TODO: Might have to become a clock watcher for stuff like this if it messes with threads
+  //eg. take time t = millis() here, put a while loop after this until n ms have passed
+  tentacleServo.write(180); 
+  delay(500);
+
+  tentacleServo.write(90); 
+  delay(300);
+
+  tentacleServo.write(180); 
+  delay(300);
+
+  tentacleServo.write(90); 
+  delay(300);
+
+  tentacleServo.write(180); 
+  delay(500);
+  
+  tentacleServo.write(0);
 }
 
 void doCoin(){
   // servo to trigger coin dispenser
-//  for(coinServoPos = 10; coinServoPos < 170; coinServoPos += 1)  // goes from 10 degrees to 170 degrees 
-//  {                                  // in steps of 1 degree 
-//    coinServo.write(coinServoPos);              // tell servo to go to position in variable 'pos' 
-//    delay(15);                       // waits 15ms for the servo to reach the position 
-//  } 
+  coinServo.write(180); 
+  delay(500);
+  coinServo.write(0);
 }
 
 void doLEDs(){
