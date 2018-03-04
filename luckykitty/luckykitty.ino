@@ -72,7 +72,6 @@ int coinServoPos = 0;
 // Sound SD card is on spo0 bus (mosi 11, miso 12, sck 13) 
 #define MOSI1 0
 #define MISO1 1
-//#define TFT_DC2 28
 #define SCK1 32
 
 // Use soft SPI for TFTs, hardware for SPI
@@ -91,7 +90,7 @@ Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC, MOSI1, SCK1, -1, MISO1);
 #define NUM_SLOTS 6
 int winState, slot1_current, slot2_current, slot3_current; 
 char* images[] = {"nyanf.bmp", "tentf.bmp", "coinf.bmp", "firef.bmp", "cheesef.bmp", "pinchyf.bmp"};
-char* sounds[] = {"nyan.wav", "scream.wav", "mario.wav", "hth.wav", "cheesy.wav", "pinchy.wav", "roll.wav"};
+//char* sounds[] = {"nyan.wav", "scream.wav", "mario.wav", "hth.wav", "cheesy.wav", "pinchy.wav", "roll.wav"};
 
 // Onboard Teensy 3.6 SD Slot
 const uint8_t SD_CHIP_SELECT = SS;
@@ -99,7 +98,6 @@ const uint8_t SOUND_SD_CHIP_SELECT = 29;
 
 // Faster library for SDIO
 SdFatSdioEX sd;
-//SdFatSoftSpi<MISO1, MOSI1, SCK1> sd2;
 SdFat sd2;
 
 // Thread test stuff
@@ -147,20 +145,8 @@ void setup() {
 
   if (!sd2.begin(SOUND_SD_CHIP_SELECT)) {
     Serial.println("\nSound cardBegin failed");
+    return;
   }
-
-  // test sd card
-//  if(sd.open("nyanf.bmp")){
-//    Serial.print(F("Nyan found on Art card!"));
-//  } else {
-//    Serial.print(F("Can't open art card files"));
-//  }
-//
-//  if(sd2.open("nyan16.wav")){
-//    Serial.print(F("Nyan found on Sound card!"));
-//  } else {
-//    Serial.print(F("Can't open sound card files"));
-//  }
 
   t = millis() - t;
   
@@ -529,6 +515,8 @@ void resetState(){
   winState = WINSTATE_NONE;
   tentacleServo.write(0);
   coinServo.write(0);
+  playWav1.stop();
+  //while (playWav1.isPlaying()) {}
   //TODO: reset LEDs
   //TODO: Stop audio
   //TODO: Any other variables that need resetting
