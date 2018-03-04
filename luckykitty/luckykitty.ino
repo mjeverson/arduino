@@ -23,7 +23,7 @@ test if changing the sdio flag for tensy allows spi1 access. if so gonna have a 
 // Sometimes fails to initialize SD card on upload, does resetting it always work?
 //todo: audio crackling
 //todo: better looping audio for reels or better track altogether
-//todo: def some kind of weird memory leak going on after runs for a few mins
+//todo: def some kind of weird memory leak going on after runs for a few mins. Inconsistently skipping final nyan cat
 
   References:
   //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
@@ -219,11 +219,15 @@ void loop() {
 //  threads.kill(thread_func_id);
 }
 
-void playReelLoop(){
-  File file;
+File file;
 
+void playReelLoop(){
   while(true){
     if(!playWav1.isPlaying()){
+      if (file){
+        file.close();
+      }
+      
       if(file = sd2.open("reel16.wav")){
         Serial.print("About to play reel!");
         playWav1.play(file);
@@ -390,19 +394,43 @@ void rollSlots(){
   }
 
   Serial.println("About to kill thread");
-  //playWav1.stop();
   threads.kill(playReelLoopID);
-  delay(500);
-  Serial.print("About to play rstop");
+  playWav1.stop();
+//  if(file){
+//    Serial.println("closing file from thread");
+//    file.close();
+//  }
   
-  playWav1.play(sd2.open("rstop16.wav"));
   delay(500);
-//  hasPlayedReelStop = true;
+
+  //todo: this occasionally gets skipped, keep retrying til it plays
+  //todo: this could probably be its own method
+  while(!playWav1.isPlaying()){
+    if(file){
+      Serial.println("closing redundant file inside while loop");
+      file.close();
+    }
+    
+    if(file = sd2.open("rstop16.wav")){
+      Serial.print("About to play rstop");
+      playWav1.play(file);
+      delay(500);
+    }
+  }
 
   while(playWav1.isPlaying()){
     Serial.println("Waiting for rstop to finish");
     delay(50);
   }
+
+  playWav1.stop();
+
+  if (file){
+    Serial.println("closing file from rstop");
+    file.close();
+  }
+
+  delay(500);
 }
 
 void doWinState(){
@@ -435,8 +463,19 @@ void doWinState(){
     //TODO:Sound: nyancat
 //    playWav1.stop();
 //    delay(500);
-    playWav1.play(sd2.open("nyan16.wav"));
-    delay(500);
+    //todo: this occasionally gets skipped. Some weird timing thing? wait til it starts playing.
+    while(!playWav1.isPlaying()){
+      if(file){
+        Serial.println("closing redundant file inside while loop");
+        file.close();
+      }
+      
+      if(file = sd2.open("nyan16.wav")){
+        Serial.println("Playing nyancat");
+        playWav1.play(file);
+        delay(500);
+      }
+    }
     
     //TODO: something like wait til all threads are done before continuing? threads.wait(n)
     //TODO: Could also do a while where we just poll until all threads have completed, while(threads.getState(n) == Threads::RUNNING)){}
@@ -555,7 +594,13 @@ void doWinState(){
 //  while(playWav1.isPlaying()){
 //    Serial.println("Waiting for winstate audio to finish!");
 //  }
-delay(5000);
+  delay(5000);
+  playWav1.stop();
+  if(file){
+    Serial.println("closing file from dowinstate");
+    file.close();
+  }
+  delay(500);
 }
 
 void resetState(){
@@ -565,6 +610,9 @@ void resetState(){
   tentacleServo.write(0);
   coinServo.write(0);
   playWav1.stop();
+  if(file){
+    file.close();
+  }
   //while (playWav1.isPlaying()) {}
   //TODO: reset LEDs
   //TODO: Stop audio
