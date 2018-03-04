@@ -10,7 +10,7 @@ Notes:
   - Or the _t3 lib if we can get it working
   - 565 raw file instead of bmp?
   - Raspberry pi?
-  - Can't do audio while rendering without huge slowdown
+  - Can't loop audio in a thread while rendering without huge slowdown
 
 TODO: Threading!
   https://github.com/ftrias/TeensyThreads
@@ -21,6 +21,9 @@ test if changing the sdio flag for tensy allows spi1 access. if so gonna have a 
 //todo: alternatively, try buffering wav files in memory if there's room? <250kb per sound byte would work, maybe even try smaller wavs or mp3s or something?
 // second SD card issue is a clock speed problem with the teensy, 24MHz/96MHz/192 works but higher seems to fail
 // Sometimes fails to initialize SD card on upload, does resetting it always work?
+//todo: audio crackling
+//todo: better looping audio for reels or better track altogether
+//todo: def some kind of weird memory leak going on after runs for a few mins
 
   References:
   //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
@@ -156,8 +159,7 @@ void setup() {
 
   // Set up sound player
   Wire.begin(); 
-  AudioMemory(8);
-  Serial.print("set up speaker volume!");
+  AudioMemory(8); //was 8
 
   // Set up handle listener
   pinMode(HANDLE, INPUT_PULLUP);
@@ -217,26 +219,28 @@ void loop() {
 //  threads.kill(thread_func_id);
 }
 
-//void playReelLoop(){
-//  File file;
-//
-//  while(true){
-//    if(!playWav1.isPlaying()){
-//      if(file = sd2.open("reel16.wav")){
-//        Serial.print("About to play reel!");
-//        playWav1.play(file);
-//        delay(10);
-//      } 
-//    }
-//  }
-//}
+void playReelLoop(){
+  File file;
+
+  while(true){
+    if(!playWav1.isPlaying()){
+      if(file = sd2.open("reel16.wav")){
+        Serial.print("About to play reel!");
+        playWav1.play(file);
+      } 
+    }
+
+    threads.delay(10);
+  }
+}
 
 // Sets the slots rolling, picks an outcome and displays it
 void rollSlots(){  
 
-  //TODO: Audio while doing reels makes rendering too slow. Unless we can improve the speed can't do this.
+  //TODO: Audio thread while doing reels makes rendering too slow. Unless we can improve the speed can't do this. Regular play is OK
+  //  playWav1.play(sd2.open("reel16.wav"));
   // Start playing rolling sound
-//  int playReelLoopID = threads.addThread(playReelLoop);
+  int playReelLoopID = threads.addThread(playReelLoop);
   
   // On rollSlots, we should iterate through 0-6 and set the slot to be whatever its current state is +1 (rolling over, so use %)
   // Also need to randomize a win state. States should be any of the 6 outcomes, or a total loss, or an almost loss (Trish has the odds)
@@ -245,7 +249,7 @@ void rollSlots(){
   // OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
 
   // Calculate win state
-  int winRoll = random(1,20); 
+  int winRoll = 1;//random(1,20); 
   Serial.println("winRoll: ");
   Serial.print(winRoll);
   
@@ -311,6 +315,7 @@ void rollSlots(){
   int slot1_stoppedAt = -1;
   int slot2_stoppedAt = -1;
   int minRollsBeforeStopping = 5;
+  boolean hasPlayedReelStop = false;
 
   // while the min number of changes hasn't happened AND the slots aren't in their final slots
   while(index < minRollsBeforeStopping || slot1_current != slot1_end || slot2_current != slot2_end || slot3_current != slot3_end || index < slot2_stoppedAt + 2) {
@@ -355,8 +360,6 @@ void rollSlots(){
     if (index >= minRollsBeforeStopping && slot1_stoppedAt > -1 && index >= slot1_stoppedAt + 2 && slot2_current == slot2_end && slot2_stoppedAt == -1) {
       slot2_stoppedAt = index;
       Serial.println("slot 2 stopped at this index");
-      
-      playWav1.play("rstop16.wav");
     }
     
     if (index > 3 && (index < minRollsBeforeStopping || slot2_stoppedAt == -1  || (slot2_stoppedAt > -1 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
@@ -370,13 +373,36 @@ void rollSlots(){
       Serial.println("");
       
       bmpDraw(images[slot3_current], 0, 0, tft3);
+
+      //TODO: If done/almost done play victory
+//      if(slot2_stoppedAt > -1 && !hasPlayedReelStop){
+//        threads.kill(playReelLoopID);
+//        delay(10);
+//        playWav1.stop();
+//        delay(10);
+//        playWav1.play(sd2.open("rstop16.wav"));
+//        delay(10);
+//        hasPlayedReelStop = true;
+//      }
     }
   
     index++;
   }
 
-  // Ensure the reel stop sound has finished
-  while(playWav1.isPlaying()){}
+  Serial.println("About to kill thread");
+  //playWav1.stop();
+  threads.kill(playReelLoopID);
+  delay(500);
+  Serial.print("About to play rstop");
+  
+  playWav1.play(sd2.open("rstop16.wav"));
+  delay(500);
+//  hasPlayedReelStop = true;
+
+  while(playWav1.isPlaying()){
+    Serial.println("Waiting for rstop to finish");
+    delay(50);
+  }
 }
 
 void doWinState(){
@@ -407,6 +433,10 @@ void doWinState(){
     //TODO: LEDs: nyancat rainbow marquee
     
     //TODO:Sound: nyancat
+//    playWav1.stop();
+//    delay(500);
+    playWav1.play(sd2.open("nyan16.wav"));
+    delay(500);
     
     //TODO: something like wait til all threads are done before continuing? threads.wait(n)
     //TODO: Could also do a while where we just poll until all threads have completed, while(threads.getState(n) == Threads::RUNNING)){}
@@ -520,6 +550,12 @@ void doWinState(){
     //TODO: Sound: PINCHAY
     
   } 
+
+  //TODO: min amount of time before running off to resetState(). While sound is playing or some max time has reached or something
+//  while(playWav1.isPlaying()){
+//    Serial.println("Waiting for winstate audio to finish!");
+//  }
+delay(5000);
 }
 
 void resetState(){
