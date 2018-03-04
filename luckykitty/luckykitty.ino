@@ -10,6 +10,7 @@ Notes:
   - Or the _t3 lib if we can get it working
   - 565 raw file instead of bmp?
   - Raspberry pi?
+  - Can't do audio while rendering without huge slowdown
 
 TODO: Threading!
   https://github.com/ftrias/TeensyThreads
@@ -198,16 +199,6 @@ void loop() {
   // Read any existing Serial data.
   while (!Serial.available()) {}
 
-  //test audio
-  File file;
-
-  if(file = sd2.open("nyan16.wav")){
-    Serial.print("About to play audio!");
-    playWav1.play(file);
-  }
-
-  doTentacle();
-  doCoin();
 
   // Start a test thread to do some stuff
 //  thread_func_id = threads.addThread(thread_func, 1);
@@ -226,8 +217,27 @@ void loop() {
 //  threads.kill(thread_func_id);
 }
 
+//void playReelLoop(){
+//  File file;
+//
+//  while(true){
+//    if(!playWav1.isPlaying()){
+//      if(file = sd2.open("reel16.wav")){
+//        Serial.print("About to play reel!");
+//        playWav1.play(file);
+//        delay(10);
+//      } 
+//    }
+//  }
+//}
+
 // Sets the slots rolling, picks an outcome and displays it
 void rollSlots(){  
+
+  //TODO: Audio while doing reels makes rendering too slow. Unless we can improve the speed can't do this.
+  // Start playing rolling sound
+//  int playReelLoopID = threads.addThread(playReelLoop);
+  
   // On rollSlots, we should iterate through 0-6 and set the slot to be whatever its current state is +1 (rolling over, so use %)
   // Also need to randomize a win state. States should be any of the 6 outcomes, or a total loss, or an almost loss (Trish has the odds)
   // On a result, save the global state of the slots. 
@@ -296,10 +306,7 @@ void rollSlots(){
     slot3_end = random(0,5);
   }
 
-  //TODO: Start playing rolling sound? Loop in the background until after?
-//  audio.loop(1);
-//  audio.play("roll.wav");
-  
+  // Do the actual rolling slots
   int index = 0;
   int slot1_stoppedAt = -1;
   int slot2_stoppedAt = -1;
@@ -329,6 +336,7 @@ void rollSlots(){
     if (index >= minRollsBeforeStopping && slot1_current == slot1_end && slot1_stoppedAt == -1) {
       slot1_stoppedAt = index;
       Serial.println("slot 1 stopped at this index");
+      
     }
   
     if (index > 1 && (index < minRollsBeforeStopping || slot1_stoppedAt == -1 || (slot1_stoppedAt > -1 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
@@ -347,6 +355,8 @@ void rollSlots(){
     if (index >= minRollsBeforeStopping && slot1_stoppedAt > -1 && index >= slot1_stoppedAt + 2 && slot2_current == slot2_end && slot2_stoppedAt == -1) {
       slot2_stoppedAt = index;
       Serial.println("slot 2 stopped at this index");
+      
+      playWav1.play("rstop16.wav");
     }
     
     if (index > 3 && (index < minRollsBeforeStopping || slot2_stoppedAt == -1  || (slot2_stoppedAt > -1 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
@@ -365,9 +375,8 @@ void rollSlots(){
     index++;
   }
 
-  //TODO: Stop playing rolling sound?
-  //  audio.loop(0);
-  //  audio.disable("roll.wav");
+  // Ensure the reel stop sound has finished
+  while(playWav1.isPlaying()){}
 }
 
 void doWinState(){
@@ -405,6 +414,8 @@ void doWinState(){
   } else if (winState == WINSTATE_TENTACLE) {
     Serial.println("doWinState tentacle");
     // tentacle
+
+    //  doTentacle();
     
     //fire: all at once
     //  digitalWrite(SOL1, HIGH);
@@ -424,6 +435,8 @@ void doWinState(){
   } else if (winState == WINSTATE_COIN) {
     Serial.println("doWinState coin");
     // coin
+
+    //  doCoin();
     
     // fire: 1-3-2-4-all
 //    digitalWrite(SOL1, HIGH);
