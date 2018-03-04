@@ -18,7 +18,7 @@ TODO: Might have some threading issues wherever we use delay()
 //todo: probably need a 2nd SD card to read in parallel with images. Test the SD card reader with nothing else on SPI1, if that works we can try SPI2.
 test if changing the sdio flag for tensy allows spi1 access. if so gonna have a problem
 //todo: alternatively, try buffering wav files in memory if there's room? <250kb per sound byte would work, maybe even try smaller wavs or mp3s or something?
-// second SD card issue is a clock speed problem with the teensy, 24MHz works but higher seems to fail
+// second SD card issue is a clock speed problem with the teensy, 24MHz/96MHz/192 works but higher seems to fail
 
   References:
   //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
@@ -44,16 +44,15 @@ test if changing the sdio flag for tensy allows spi1 access. if so gonna have a 
 #define SOL3 22
 #define SOL4 23
 
-#define SPEAKER 37//2-10, 14, 16-17, 20-23, 29-30, 35-38
+//#define SPEAKER 37//2-10, 14, 16-17, 20-23, 29-30, 35-38
 #define MAX9744_I2CADDR 0x4B
-//int volume = 20; // 0-63
 AudioPlaySdWav playWav1;
 AudioOutputAnalog audioOutput;
 AudioConnection patchCord1(playWav1, 0, audioOutput, 0);
 
 #define TENTACLE_SERVO 35//2-10, 14, 16-17, 20-23, 29-30, 35-38
 #define COIN_SERVO 36//2-10, 14, 16-17, 20-23, 29-30, 35-38
-//#define NEOPIXEL 2-10, 14, 16-17, 20-23, 29-30, 35-38 // LED Stuff
+#define NEOPIXEL 38;//2-10, 14, 16-17, 20-23, 29-30, 35-38 // LED Stuff
 
 // Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
 //Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
@@ -76,9 +75,9 @@ int coinServoPos = 0;
 
 // Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
 //HX8357_t3 tft = HX8357_t3(TFT_CS, TFT_DC);
-//Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
-//Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
-//Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC2, MOSI1, SCK1, -1, MISO1);
+Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
+Adafruit_HX8357 tft2 = Adafruit_HX8357(TFT_CS2, TFT_DC);
+Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC2, MOSI1, SCK1, -1, MISO1);
 
 #define WINSTATE_NONE 0
 #define WINSTATE_NYAN 1
@@ -94,7 +93,7 @@ char* sounds[] = {"nyan.wav", "scream.wav", "mario.wav", "hth.wav", "cheesy.wav"
 
 // Onboard Teensy 3.6 SD Slot
 const uint8_t SD_CHIP_SELECT = SS;
-const uint8_t SOUND_SD_CHIP_SELECT = 25;//;31;
+const uint8_t SOUND_SD_CHIP_SELECT = 29;//;31;
 
 // Faster library for SDIO
 SdFatSdioEX sd;
@@ -121,22 +120,18 @@ void setup() {
   Serial.begin(9600);
 
   // Sets up the TFT screens
-//  tft.begin(HX8357D);
-//  tft2.begin(HX8357D);
-//  tft3.begin(HX8357D);
-//
-//  // Prove the screens are on and accepting commands
-//  tft.fillScreen(HX8357_BLUE);
-//  tft2.fillScreen(HX8357_BLUE);
-//  tft3.fillScreen(HX8357_BLUE);
+  tft.begin(HX8357D);
+  tft2.begin(HX8357D);
+  tft3.begin(HX8357D);
+
+  // Prove the screens are on and accepting commands
+  tft.fillScreen(HX8357_BLUE);
+  tft2.fillScreen(HX8357_BLUE);
+  tft3.fillScreen(HX8357_BLUE);
 
   // Initialize the SD card
   Serial.println("Initializing SD card...");
   uint32_t t = millis();
-
-  // disable sd2 while initializing sd1
-//  pinMode(SOUND_SD_CHIP_SELECT, OUTPUT);
-//  digitalWrite(SOUND_SD_CHIP_SELECT, HIGH);
 
   if (!sd.cardBegin()) {
     Serial.println("\nArt cardBegin failed");
@@ -148,18 +143,11 @@ void setup() {
     return;
   }
 
-//  SPI.setMOSI(MOS1);
-//  SPI.setSCK(SCK1);
   if (!sd2.begin(SOUND_SD_CHIP_SELECT)) {
     Serial.println("\nSound cardBegin failed");
-//    return;
   }
 
-//  if (!sd2.fsBegin()) {
-//    Serial.println("\nSound File System initialization failed.\n");
-//    return;
-//  }
-
+  // test sd card
   if(sd.open("nyanf.bmp")){
     Serial.print(F("Nyan found on Art card!"));
   } else {
@@ -183,7 +171,7 @@ void setup() {
   Serial.print("set up speaker volume!");
 
   // Set up handle listener
-//  pinMode(HANDLE, INPUT_PULLUP);
+  pinMode(HANDLE, INPUT_PULLUP);
 
   // Set up solenoid
   pinMode(SOL1, OUTPUT);
@@ -205,9 +193,9 @@ void setup() {
   slot1_current = random(0,5);
   slot2_current = random(0,5);
   slot3_current = random(0,5);
-//  bmpDraw(images[slot1_current], 0, 0, tft);
-//  bmpDraw(images[slot2_current], 0, 0, tft2);
-//  bmpDraw(images[slot3_current], 0, 0, tft3);
+  bmpDraw(images[slot1_current], 0, 0, tft);
+  bmpDraw(images[slot2_current], 0, 0, tft2);
+  bmpDraw(images[slot3_current], 0, 0, tft3);
 }
 
 void loop() {
@@ -596,6 +584,7 @@ void doCoin(){
   // servo to trigger coin dispenser
   coinServo.write(180); 
   delay(500);
+  
   coinServo.write(0);
 }
 
@@ -610,20 +599,6 @@ void doLEDs(){
 //    strip.setPixelColor(i, stripGreen, stripRed, stripBlue);
 //  }
 }
-
-// Setting the volume is very simple! 
-//void setVolume(int v) {
-//  // cant be higher than 63 or lower than 0
-//  if (v > 63) v = 63;
-//  if (v < 0) v = 0;
-//  
-//  Serial.print("Setting volume to ");
-//  Serial.println(v);
-//  Wire.beginTransmission(MAX9744_I2CADDR);
-//  Wire.write(v);
-//  Wire.endTransmission();
-//}
-
 
 // This function opens a Windows Bitmap (BMP) file and
 // displays it at the given coordinates.  It's sped up
