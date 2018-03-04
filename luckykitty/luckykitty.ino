@@ -24,6 +24,7 @@ test if changing the sdio flag for tensy allows spi1 access. if so gonna have a 
 //todo: audio crackling
 //todo: better looping audio for reels or better track altogether
 //todo: def some kind of weird memory leak going on after runs for a few mins. Inconsistently skipping final nyan cat
+//todo: issue getting the sd card to initialize when just attaching 5V power
 
   References:
   //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
@@ -137,6 +138,10 @@ void setup() {
   Serial.println("Initializing SD card...");
   uint32_t t = millis();
 
+// disable sd2 while initializing sd1
+//  pinMode(SOUND_SD_CHIP_SELECT, OUTPUT);
+  digitalWrite(SOUND_SD_CHIP_SELECT, HIGH);
+
   if (!sd.cardBegin()) {
     Serial.println("\nArt cardBegin failed");
     return;
@@ -147,6 +152,10 @@ void setup() {
     return;
   }
 
+  
+  delay(1000);
+
+//todo: this doesn't work when attached only to 5V power
   if (!sd2.begin(SOUND_SD_CHIP_SELECT)) {
     Serial.println("\nSound cardBegin failed");
     return;
@@ -253,7 +262,7 @@ void rollSlots(){
   // OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
 
   // Calculate win state
-  int winRoll = 1;//random(1,20); 
+  int winRoll = random(1,20); 
   Serial.println("winRoll: ");
   Serial.print(winRoll);
   
