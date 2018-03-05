@@ -140,7 +140,7 @@ void setup() {
 
 // disable sd2 while initializing sd1
 //  pinMode(SOUND_SD_CHIP_SELECT, OUTPUT);
-  digitalWrite(SOUND_SD_CHIP_SELECT, HIGH);
+//  digitalWrite(SOUND_SD_CHIP_SELECT, HIGH);
 
   if (!sd.cardBegin()) {
     Serial.println("\nArt cardBegin failed");
@@ -151,8 +151,6 @@ void setup() {
     Serial.println("\nArt File System initialization failed.\n");
     return;
   }
-
-  delay(1000);
 
   // This didn't work when attached only to 5V power. All this was was the 3.3V & GND needed to connect directly to teensy & also to power supply ground 
   //todo: why does it need direct connection to power supply GND and teensy GND when both of those things are connected?
