@@ -208,7 +208,7 @@ File audioFile;
 void playReelLoop(){
   while(true){
     //TODO: Change this to a while and then call out to the custom play function?
-    if(!playWav1.isPlaying()){
+    while(!playWav1.isPlaying()){
       if (audioFile){
         audioFile.close();
       }
@@ -219,6 +219,7 @@ void playReelLoop(){
       } 
     }
 
+    //TODO: might not even need this?
     threads.delay(10);
   }
 }
@@ -369,7 +370,7 @@ void rollSlots(){
   delay(500);
 
   // This occasionally gets skipped, keep retrying til it plays
-  //todo: this could probably be its own method
+  //todo: this could probably be its own method playSound("rstop16.wav");
   while(!playWav1.isPlaying()){
     if(audioFile){
       Serial.println("closing redundant audioFile inside while loop");
@@ -402,159 +403,99 @@ void rollSlots(){
 
 void doWinState(){
   //based on win state do sounds, fire, etc.
-  //TODO: Swap from integer winState to an enumerator
+  //TODO: Maybe move this switch statement into each "doX" function, extra checks but simplifies this function (this'll probably need to manage thread functions and stuff anyway)
   //TODO: could change image on screen for victory if we want
   if (winState == WINSTATE_NYAN) {
-    // nyancat
     Serial.println("doWinState nyan");
 
     //TODO: Do the fire. Might need to swap to clock watching
-    digitalWrite(SOL1, HIGH);
-    delay(250);
-    digitalWrite(SOL1, LOW);
-    delay(250);
-    digitalWrite(SOL2, HIGH);
-    delay(250);
-    digitalWrite(SOL2, LOW);
-    delay(250);
-    digitalWrite(SOL3, HIGH);
-    delay(250);
-    digitalWrite(SOL3, LOW);
-    delay(250);
-    digitalWrite(SOL4, HIGH);
-    delay(250);
-    digitalWrite(SOL4, LOW);
-    delay(250);
+//    doFire();
     
     //TODO: LEDs: nyancat rainbow marquee
-//    strip.setColor();
-    
-    //TODO:Sound: nyancat
+//    doLights();
+   
     // Sound: Nyancat. This occasionally gets skipped. Some weird timing thing? wait til it starts playing.
-    while(!playWav1.isPlaying()){
-      if(audioFile){
-        Serial.println("closing redundant audioFile inside while loop");
-        audioFile.close();
-      }
-      
-      if(audioFile = sd2.open("nyan16.wav")){
-        Serial.println("Playing nyancat");
-        playWav1.play(audioFile);
-        delay(500);
-      }
-    }
+    playSound("nyan16.wav");
+//    while(!playWav1.isPlaying()){
+//      if(audioFile){
+//        Serial.println("closing redundant audioFile inside while loop");
+//        audioFile.close();
+//      }
+//      
+//      if(audioFile = sd2.open("nyan16.wav")){
+//        Serial.println("Playing nyancat");
+//        playWav1.play(audioFile);
+//        delay(500);
+//      }
+//    }
     
     //TODO: something like wait til all threads are done before continuing? threads.wait(n)
     //TODO: Could also do a while where we just poll until all threads have completed, while(threads.getState(n) == Threads::RUNNING)){}
     //TODO: Do we need to clear thread_func_id once the thread ends?
   } else if (winState == WINSTATE_TENTACLE) {
     Serial.println("doWinState tentacle");
-    // tentacle
 
+    // Wave the tentacle
     //  doTentacle();
     
     //fire: all at once
-    //  digitalWrite(SOL1, HIGH);
-    //  digitalWrite(SOL2, HIGH);
-    //  digitalWrite(SOL3, HIGH);
-    //  digitalWrite(SOL4, HIGH);
-    //  delay(500);
-    //  digitalWrite(SOL1, LOW);
-    //  digitalWrite(SOL2, LOW);
-    //  digitalWrite(SOL3, LOW);
-    //  digitalWrite(SOL4, LOW);
+    //  doFire();
     
     //TODO: LEDs: green
+    //    doLights();
     
     //TODO: Sound: person screaming
+    //playSound("scream16.wav");
     
   } else if (winState == WINSTATE_COIN) {
     Serial.println("doWinState coin");
-    // coin
 
+    // Dispense a coin
     //  doCoin();
     
     // fire: 1-3-2-4-all
-//    digitalWrite(SOL1, HIGH);
-//    delay(500);
-//    digitalWrite(SOL1, LOW);
-//    delay(500);
-//    digitalWrite(SOL2, HIGH);
-//    delay(500);
-//    digitalWrite(SOL2, LOW);
-//    delay(500);
-//    digitalWrite(SOL3, HIGH);
-//    delay(500);
-//    digitalWrite(SOL3, LOW);
-//    delay(500);
-//    digitalWrite(SOL4, HIGH);
-//    delay(500);
-//    digitalWrite(SOL4, LOW);
-//    delay(500);
-//    digitalWrite(SOL1, HIGH);
-//    digitalWrite(SOL2, HIGH);
-//    digitalWrite(SOL3, HIGH);
-//    digitalWrite(SOL4, HIGH);
-//    delay(500);
-//    digitalWrite(SOL1, LOW);
-//    digitalWrite(SOL2, LOW);
-//    digitalWrite(SOL3, LOW);
-//    digitalWrite(SOL4, LOW);
+    //    doFire();
     
     //TODO: LEDs: Yellow
+    //    doLights();
     
     //TODO: sound: mario 1up/coin
+    //playSound("coin16.wav");
     
   } else if (winState == WINSTATE_FIRE) {
     Serial.println("doWinState fire");
-    // fire
     
     // fire all 4 x3
-//    for (int i = 0; i< 3; i++){
-//        digitalWrite(SOL1, HIGH);
-//        digitalWrite(SOL2, HIGH);
-//        digitalWrite(SOL3, HIGH);
-//        digitalWrite(SOL4, HIGH);
-//        delay(500);
-//        digitalWrite(SOL1, LOW);
-//        digitalWrite(SOL2, LOW);
-//        digitalWrite(SOL3, LOW);
-//        digitalWrite(SOL4, LOW);
-//        delay(500);
-//    }
+    //    doFire();
     
     //TODO: LEDs: Red
+    //    doLights();
+    
     //TODO: sound: highway to hell
+    //playSound("hth16.wav");
   } else if (winState == WINSTATE_CHEESY) {
     Serial.println("doWinState cheesy");
-    // cheesy poofs
     
     // no fire
+    //    doFire();
     
     //TODO: LEDs: white
+    //    doLights();
     
     //TODO: Sound: cheesy poofs
+    //playSound("cheesy16.wav");
     
   } else if (winState == WINSTATE_PINCHY) {
     Serial.println("doWinState pinchy");
-    // pinchy
     
     // fire all 4
-//    digitalWrite(SOL1, HIGH);
-//    digitalWrite(SOL2, HIGH);
-//    digitalWrite(SOL3, HIGH);
-//    digitalWrite(SOL4, HIGH);
-//    delay(500);
-//    digitalWrite(SOL1, LOW);
-//    digitalWrite(SOL2, LOW);
-//    digitalWrite(SOL3, LOW);
-//    digitalWrite(SOL4, LOW);
-//    delay(500);
+    //    doFire();
 
     //TODO: LEDs: Red
+    //    doLights();
     
     //TODO: Sound: PINCHAY
-    
+    //playSound("pinchy16.wav");
   } 
 
   //TODO: min amount of time before running off to resetState(). While sound is playing or some max time has reached or something
@@ -590,12 +531,16 @@ void resetState(){
   }
   
   //TODO: reset LEDs
+  doLights();
+  
+  //TODO: Make sure fire is off
+  doFire();
   
   //TODO: Any other variables that need resetting
 }
 
+// Stops any existing sound, makes sure the file is closed, then keeps attempting to play the sound until it actually starts
 void playSound(char* filename){
-  //sounds needed: nyancat, pinchy, person screaming (homer?), super mario coin/1up, highway to hell, cartman cheesy poofs, slot rolling sound mario kart?
   playWav1.stop();
 
   //TODO: Might not need this
@@ -615,26 +560,182 @@ void playSound(char* filename){
   }
 }
 
-//trigger the solenoids
+//TODO: Do the fire. Might need to swap to clock watching
 void doFire(){
-//  digitalWrite(SOL1, HIGH);
-//  delay(500);
-//  digitalWrite(SOL1, LOW);
-//  delay(500);
-//  digitalWrite(SOL2, HIGH);
-//  delay(500);
-//  digitalWrite(SOL2, LOW);
-//  delay(500);
-//  digitalWrite(SOL3, HIGH);
-//  delay(500);
-//  digitalWrite(SOL3, LOW);
-//  delay(500);
-//  digitalWrite(SOL4, HIGH);
-//  delay(500);
-//  digitalWrite(SOL4, LOW);
-//  delay(500);
+  Serial.println("doing fire");
+
+  switch (winState) {
+    case WINSTATE_NYAN: 
+      //1-2-3-4
+      fireSequential(false);
+      fireSequential(true);
+      break;
+     case WINSTATE_TENTACLE:
+      // all at once
+      fireAll();
+      break;
+    case WINSTATE_COIN:
+      // fire: 1-3-2-4-all
+      fireSequential(false);
+      fireAll();
+      break;
+    case WINSTATE_FIRE:
+      // fire all 4 x3
+      for (int i = 0; i< 3; i++){
+          fireAll();
+      }
+      break;
+    case WINSTATE_CHEESY:
+      // No fire
+      fireOff();
+      break;
+    case WINSTATE_PINCHY:
+      // fire all 4
+      fireAll();
+      break;
+    default:
+      // No fire
+      fireOff();
+      break;
+  }
 }
 
+// Triggers all four solenoids
+fireAll(){
+  digitalWrite(SOL1, HIGH);
+  digitalWrite(SOL2, HIGH);
+  digitalWrite(SOL3, HIGH);
+  digitalWrite(SOL4, HIGH);
+  delay(500);
+  digitalWrite(SOL1, LOW);
+  digitalWrite(SOL2, LOW);
+  digitalWrite(SOL3, LOW);
+  digitalWrite(SOL4, LOW);
+  delay(250);
+}
+
+// Triggers a  sequential pattern of 1-2-3-4, or reverse
+fireSequential(boolean reverse){
+  if(!reverse){
+    digitalWrite(SOL1, HIGH);
+    delay(250);
+    digitalWrite(SOL1, LOW);
+    delay(250);
+    digitalWrite(SOL2, HIGH);
+    delay(250);
+    digitalWrite(SOL2, LOW);
+    delay(250);
+    digitalWrite(SOL3, HIGH);
+    delay(250);
+    digitalWrite(SOL3, LOW);
+    delay(250);
+    digitalWrite(SOL4, HIGH);
+    delay(250);
+    digitalWrite(SOL4, LOW);
+    delay(250);
+  } else {
+    digitalWrite(SOL4, HIGH);
+    delay(250);
+    digitalWrite(SOL4, LOW);
+    delay(250);
+    digitalWrite(SOL3, HIGH);
+    delay(250);
+    digitalWrite(SOL3, LOW);
+    delay(250);
+    digitalWrite(SOL2, HIGH);
+    delay(250);
+    digitalWrite(SOL2, LOW);
+    delay(250);
+    digitalWrite(SOL1, HIGH);
+    delay(250);
+    digitalWrite(SOL1, LOW);
+    delay(250);
+  }
+}
+
+// Turns off all fire
+void fireOff(){
+  digitalWrite(SOL1, LOW);
+  digitalWrite(SOL2, LOW);
+  digitalWrite(SOL3, LOW);
+  digitalWrite(SOL4, LOW);
+}
+
+// Sets the LED colours based on the win state
+void doLights(){
+  Serial.println("doing Lights");
+  
+  switch (winState) {
+    case WINSTATE_NYAN: 
+      // nyan rainbow colours
+      rainbowCycle();
+      break;
+     case WINSTATE_TENTACLE:
+      // green 
+      setStripColor(255, 0, 0);
+      break;
+    case WINSTATE_COIN:
+      // yellow
+      setStripColor(255, 255, 0);
+      break;
+    case WINSTATE_FIRE:
+      // red
+      setStripColor(0, 255, 0);
+      break;
+    case WINSTATE_CHEESY:
+      // orange
+      setStripColor(170, 255, 0);
+      break;
+    case WINSTATE_PINCHY:
+      // Red
+      setStripColor(0, 255, 0);
+      break;
+    default:
+      // White
+      setStripColor(255, 255, 255);
+      break;
+  }
+}
+
+// Sets the LED strip all to one colour
+void setStripColor(int g, int r, int b){
+  for (int i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, g, r, b);
+  }
+
+  strip.show();
+  delay(50);
+}
+
+// Makes the rainbow equally distributed throughout
+void rainbowCycle(uint8_t wait) {
+  uint16_t i, j;
+ 
+  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+    for(i=0; i< strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+    }
+    
+    strip.show();
+    delay(wait);
+  }
+}
+ 
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(byte WheelPos) {
+  if(WheelPos < 85) {
+   return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  } else if(WheelPos < 170) {
+   WheelPos -= 85;
+   return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  } else {
+   WheelPos -= 170;
+   return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+}
+
+// Makes the tentacle pop out, wiggle around, and go away
 void doTentacle(){
   //TODO: Might have to become a clock watcher for stuff like this if it messes with threads
   //eg. take time t = millis() here, put a while loop after this until n ms have passed
@@ -656,24 +757,12 @@ void doTentacle(){
   tentacleServo.write(0);
 }
 
+
+// Triggers the coin dispenser to dispense a coin
 void doCoin(){
-  // servo to trigger coin dispenser
   coinServo.write(180); 
   delay(500);
-  
   coinServo.write(0);
-}
-
-void doLEDs(){
-  //RGB LED patterns
-//  int stripRed = random(0,255);
-//  int stripGreen = random(0,255);
-//  int stripBlue = random(0,255);
-//
-//  // pick new colors
-//  for (int i = 0; i < strip.numPixels(); i++) {
-//    strip.setPixelColor(i, stripGreen, stripRed, stripBlue);
-//  }
 }
 
 // This function opens a Windows Bitmap (BMP) file and
