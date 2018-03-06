@@ -668,7 +668,7 @@ void doLights(){
   switch (winState) {
     case WINSTATE_NYAN: 
       // nyan rainbow colours
-      rainbowCycle();
+      rainbowCycle(50);
       break;
      case WINSTATE_TENTACLE:
       // green 
@@ -698,13 +698,13 @@ void doLights(){
 }
 
 // Sets the LED strip all to one colour
-void setStripColor(int g, int r, int b){
+void setStripColor(int g, int r, int b, int wait){
   for (int i = 0; i < strip.numPixels(); i++) {
     strip.setPixelColor(i, g, r, b);
   }
 
   strip.show();
-  delay(50);
+  delay(wait);
 }
 
 // Makes the rainbow equally distributed throughout
@@ -717,7 +717,7 @@ void rainbowCycle(uint8_t wait) {
     }
     
     strip.show();
-    delay(wait);
+    delay(50);
   }
 }
  
