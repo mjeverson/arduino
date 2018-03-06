@@ -56,12 +56,13 @@ AudioPlaySdWav playWav1;
 AudioOutputAnalog audioOutput;
 AudioConnection patchCord1(playWav1, 0, audioOutput, 0);
 
-#define TENTACLE_SERVO 35//2-10, 14, 16-17, 20-23, 29-30, 35-38
-#define COIN_SERVO 36//2-10, 14, 16-17, 20-23, 29-30, 35-38
-#define NEOPIXEL 38;//2-10, 14, 16-17, 20-23, 29-30, 35-38 // LED Stuff
-
+// Valid output pins: //2-10, 14, 16-17, 20-23, 29-30, 35-38
+#define TENTACLE_SERVO 35
+#define COIN_SERVO 36
+#define NEOPIXEL 38
+#define NUM_PIXELS 16
 // Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
-//Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, NEOPIXEL, NEO_GRB + NEO_KHZ800);
+//Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, NEOPIXEL, NEO_GRB + NEO_KHZ800);
 
 Servo tentacleServo;
 Servo coinServo;  
@@ -105,18 +106,6 @@ const uint8_t SOUND_SD_CHIP_SELECT = 29;
 SdFatSdioEX sd;
 SdFat sd2;
 
-// Thread test stuff
-int thread_func_id;
-
-void thread_func(){
-  while(true) {
-    //TODO: Issues with using Serial in a thread. There's something else available to handle this in the thread docs if we need it
-    Serial.print("\nThis is in a thread with ID: ");
-    Serial.print(thread_func_id);
-    threads.delay(500);
-  }
-}
-
 // Get this party started!
 void setup() {
   // Sets up the RNG
@@ -137,10 +126,6 @@ void setup() {
   // Initialize the SD card
   Serial.println("Initializing SD card...");
   uint32_t t = millis();
-
-// disable sd2 while initializing sd1
-//  pinMode(SOUND_SD_CHIP_SELECT, OUTPUT);
-//  digitalWrite(SOUND_SD_CHIP_SELECT, HIGH);
 
   if (!sd.cardBegin()) {
     Serial.println("\nArt cardBegin failed");
@@ -205,39 +190,32 @@ void loop() {
   // For now do this in a serial read. Normally will need to wait for handle mechanism
   Serial.print("\nPress any key to begin slots!\n");
 
-  // Read any existing Serial data.
+  //TODO: Read any existing Serial data. (won't need this once we swap to handle)
   while (!Serial.available()) {}
 
-
-  // Start a test thread to do some stuff
-//  thread_func_id = threads.addThread(thread_func, 1);
-  
   rollSlots();
   doWinState();
   resetState();
 
+  //TODO: Clean up any available serial data (won't need this once we swap to handle)
   do {
     delay(10);
   } while (Serial.available() && Serial.read() >= 0);
-
-  // Kill the test thread
-//  Serial.print("\nkilling thread: ");
-//  Serial.print(thread_func_id);
-//  threads.kill(thread_func_id);
 }
 
-File file;
+File audioFile;
 
 void playReelLoop(){
   while(true){
+    //TODO: Change this to a while and then call out to the custom play function?
     if(!playWav1.isPlaying()){
-      if (file){
-        file.close();
+      if (audioFile){
+        audioFile.close();
       }
       
-      if(file = sd2.open("reel16.wav")){
+      if(audioFile = sd2.open("reel16.wav")){
         Serial.print("About to play reel!");
-        playWav1.play(file);
+        playWav1.play(audioFile);
       } 
     }
 
@@ -246,19 +224,15 @@ void playReelLoop(){
 }
 
 // Sets the slots rolling, picks an outcome and displays it
+// On rollSlots, we should iterate through 0-6 and set the slot to be whatever its current state is +1 (rolling over, so use %)
+// Also need to randomize a win state. States should be any of the 6 outcomes, or a total loss, or an almost loss (Trish has the odds)
+// On a result, save the global state of the slots. 
+// keep rolling the first slot til it gets where it needs to go. Then the second, then the third. (don't update the global state)
+// OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
 void rollSlots(){  
-
-  //TODO: Audio thread while doing reels makes rendering too slow. Unless we can improve the speed can't do this. Regular play is OK
-  //  playWav1.play(sd2.open("reel16.wav"));
   // Start playing rolling sound
   int playReelLoopID = threads.addThread(playReelLoop);
   
-  // On rollSlots, we should iterate through 0-6 and set the slot to be whatever its current state is +1 (rolling over, so use %)
-  // Also need to randomize a win state. States should be any of the 6 outcomes, or a total loss, or an almost loss (Trish has the odds)
-  // On a result, save the global state of the slots. 
-  // keep rolling the first slot til it gets where it needs to go. Then the second, then the third. (don't update the global state)
-  // OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
-
   // Calculate win state
   int winRoll = random(1,20); 
   Serial.println("winRoll: ");
@@ -326,13 +300,11 @@ void rollSlots(){
   int slot1_stoppedAt = -1;
   int slot2_stoppedAt = -1;
   int minRollsBeforeStopping = 5;
-  boolean hasPlayedReelStop = false;
 
   // while the min number of changes hasn't happened AND the slots aren't in their final slots
+  // only let the first slot move for the first iteration, then add the second for the next two, then start the third
+  // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
   while(index < minRollsBeforeStopping || slot1_current != slot1_end || slot2_current != slot2_end || slot3_current != slot3_end || index < slot2_stoppedAt + 2) {
-    // only let the first slot move for the first two iterations, then add the second for the next two, then start the third
-    // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
-
     Serial.print("\n index: ");
     Serial.print(index + "\n");
 
@@ -355,7 +327,7 @@ void rollSlots(){
       
     }
   
-    if (index > 1 && (index < minRollsBeforeStopping || slot1_stoppedAt == -1 || (slot1_stoppedAt > -1 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
+    if (index >= 1 && (index < minRollsBeforeStopping || slot1_stoppedAt == -1 || (slot1_stoppedAt > -1 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
       slot2_current++;
       slot2_current = slot2_current > 5 ? 0 : slot2_current;
 
@@ -373,7 +345,7 @@ void rollSlots(){
       Serial.println("slot 2 stopped at this index");
     }
     
-    if (index > 3 && (index < minRollsBeforeStopping || slot2_stoppedAt == -1  || (slot2_stoppedAt > -1 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
+    if (index >= 3 && (index < minRollsBeforeStopping || slot2_stoppedAt == -1  || (slot2_stoppedAt > -1 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
       slot3_current++;
       slot3_current = slot3_current > 5 ? 0 : slot3_current;
 
@@ -384,17 +356,6 @@ void rollSlots(){
       Serial.println("");
       
       bmpDraw(images[slot3_current], 0, 0, tft3);
-
-      //TODO: If done/almost done play victory
-//      if(slot2_stoppedAt > -1 && !hasPlayedReelStop){
-//        threads.kill(playReelLoopID);
-//        delay(10);
-//        playWav1.stop();
-//        delay(10);
-//        playWav1.play(sd2.open("rstop16.wav"));
-//        delay(10);
-//        hasPlayedReelStop = true;
-//      }
     }
   
     index++;
@@ -403,28 +364,26 @@ void rollSlots(){
   Serial.println("About to kill thread");
   threads.kill(playReelLoopID);
   playWav1.stop();
-//  if(file){
-//    Serial.println("closing file from thread");
-//    file.close();
-//  }
-  
+
+  //todo: can probably reduce or eliminate this delay
   delay(500);
 
-  //todo: this occasionally gets skipped, keep retrying til it plays
+  // This occasionally gets skipped, keep retrying til it plays
   //todo: this could probably be its own method
   while(!playWav1.isPlaying()){
-    if(file){
-      Serial.println("closing redundant file inside while loop");
-      file.close();
+    if(audioFile){
+      Serial.println("closing redundant audioFile inside while loop");
+      audioFile.close();
     }
     
-    if(file = sd2.open("rstop16.wav")){
+    if(audioFile = sd2.open("rstop16.wav")){
       Serial.print("About to play rstop");
-      playWav1.play(file);
+      playWav1.play(audioFile);
       delay(500);
     }
   }
 
+  //TODO: Can remove this in final operation - maybe add a #debug flag for this sort of thing?
   while(playWav1.isPlaying()){
     Serial.println("Waiting for rstop to finish");
     delay(50);
@@ -432,9 +391,10 @@ void rollSlots(){
 
   playWav1.stop();
 
-  if (file){
-    Serial.println("closing file from rstop");
-    file.close();
+  // TODO: Might not need this, it should be handled by the while loop we're going to extract
+  if (audioFile){
+    Serial.println("closing audioFile from rstop");
+    audioFile.close();
   }
 
   delay(500);
@@ -447,39 +407,39 @@ void doWinState(){
   if (winState == WINSTATE_NYAN) {
     // nyancat
     Serial.println("doWinState nyan");
-    
-    //  digitalWrite(SOL1, HIGH);
-    //  delay(500);
-    //  digitalWrite(SOL1, LOW);
-    //  delay(500);
-    //  digitalWrite(SOL2, HIGH);
-    //  delay(500);
-    //  digitalWrite(SOL2, LOW);
-    //  delay(500);
-    //  digitalWrite(SOL3, HIGH);
-    //  delay(500);
-    //  digitalWrite(SOL3, LOW);
-    //  delay(500);
-    //  digitalWrite(SOL4, HIGH);
-    //  delay(500);
-    //  digitalWrite(SOL4, LOW);
-    //  delay(500);
+
+    //TODO: Do the fire. Might need to swap to clock watching
+    digitalWrite(SOL1, HIGH);
+    delay(250);
+    digitalWrite(SOL1, LOW);
+    delay(250);
+    digitalWrite(SOL2, HIGH);
+    delay(250);
+    digitalWrite(SOL2, LOW);
+    delay(250);
+    digitalWrite(SOL3, HIGH);
+    delay(250);
+    digitalWrite(SOL3, LOW);
+    delay(250);
+    digitalWrite(SOL4, HIGH);
+    delay(250);
+    digitalWrite(SOL4, LOW);
+    delay(250);
     
     //TODO: LEDs: nyancat rainbow marquee
+//    strip.setColor();
     
     //TODO:Sound: nyancat
-//    playWav1.stop();
-//    delay(500);
-    //todo: this occasionally gets skipped. Some weird timing thing? wait til it starts playing.
+    // Sound: Nyancat. This occasionally gets skipped. Some weird timing thing? wait til it starts playing.
     while(!playWav1.isPlaying()){
-      if(file){
-        Serial.println("closing redundant file inside while loop");
-        file.close();
+      if(audioFile){
+        Serial.println("closing redundant audioFile inside while loop");
+        audioFile.close();
       }
       
-      if(file = sd2.open("nyan16.wav")){
+      if(audioFile = sd2.open("nyan16.wav")){
         Serial.println("Playing nyancat");
-        playWav1.play(file);
+        playWav1.play(audioFile);
         delay(500);
       }
     }
@@ -603,34 +563,56 @@ void doWinState(){
 //  }
   delay(5000);
   playWav1.stop();
-  if(file){
-    Serial.println("closing file from dowinstate");
-    file.close();
+  
+  if(audioFile){
+    Serial.println("closing audioFile from dowinstate");
+    audioFile.close();
   }
+  
   delay(500);
 }
 
+//TODO: Set everything back to normal state for another round
 void resetState(){
-  //TODO: Set everything back to normal state for another round
   Serial.println("Round over, state reset!");
+
+  // Reset the win state
   winState = WINSTATE_NONE;
+  
+  // Reset coin and tentacle servo positions
   tentacleServo.write(0);
   coinServo.write(0);
+  
+  // Stop audio
   playWav1.stop();
-  if(file){
-    file.close();
+  if(audioFile){
+    audioFile.close();
   }
-  //while (playWav1.isPlaying()) {}
+  
   //TODO: reset LEDs
-  //TODO: Stop audio
+  
   //TODO: Any other variables that need resetting
 }
 
-void playSound(){
+void playSound(char* filename){
   //sounds needed: nyancat, pinchy, person screaming (homer?), super mario coin/1up, highway to hell, cartman cheesy poofs, slot rolling sound mario kart?
+  playWav1.stop();
+
+  //TODO: Might not need this
+  delay(500);
   
-  //audio.loop(0);
-  //audio.play("nyancat.wav");
+  while(!playWav1.isPlaying()){
+    if(audioFile){
+      Serial.println("closing redundant audioFile inside while loop");
+      audioFile.close();
+    }
+    
+    if(audioFile = sd2.open(filename)){
+      Serial.println("Playing nyancat");
+      playWav1.play(filename);
+      delay(500);
+    }
+  }
 }
 
 //trigger the solenoids
