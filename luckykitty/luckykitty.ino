@@ -167,7 +167,7 @@ void setup() {
   coinServo.attach(COIN_SERVO);
 
   // Set up LEDs. Some default colour to indicate ready to go
-//  strip.begin();
+  strip.begin();
 
   // Initializes the state of the peripherals
   resetState();
@@ -403,7 +403,7 @@ void rollSlots(){
 
 void doWinState(){
   //based on win state do sounds, fire, etc.
-  //TODO: Maybe move this switch statement into each "doX" function, extra checks but simplifies this function (this'll probably need to manage thread functions and stuff anyway)
+  //TODO: Probably gonna need to break some of this stuff out into threads. Lights, Fire, Servo 1 and servo 2 (sound's okay)
   //TODO: could change image on screen for victory if we want
   if (winState == WINSTATE_NYAN) {
     Serial.println("doWinState nyan");
@@ -479,10 +479,10 @@ void doWinState(){
     // no fire
     //    doFire();
     
-    //TODO: LEDs: white
+    // LEDs: orange
     //    doLights();
     
-    //TODO: Sound: cheesy poofs
+    // Sound: cheesy poofs
     //playSound("cheesy16.wav");
     
   } else if (winState == WINSTATE_PINCHY) {
@@ -491,10 +491,10 @@ void doWinState(){
     // fire all 4
     //    doFire();
 
-    //TODO: LEDs: Red
+    // LEDs: Red
     //    doLights();
     
-    //TODO: Sound: PINCHAY
+    // Sound: PINCHAY
     //playSound("pinchy16.wav");
   } 
 
