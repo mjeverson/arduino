@@ -499,7 +499,7 @@ void resetState(){
   
   // reset LEDs
   doLights();
-  
+
   // Make sure fire is off
   doFire();
 }
@@ -665,10 +665,9 @@ void doLights(){
 }
 
 // Sets the LED strip all to one colour
-void setStripColor(int g, int r, int b){
-  int color = strip.Color(r, g, b);
+void setStripColor(int r, int g, int b){
   for (int i = 0; i < strip.numPixels(); i++) {
-    strip.setPixelColor(i, color);
+    strip.setPixelColor(i, r, g, b);
   }
 
   strip.show();
