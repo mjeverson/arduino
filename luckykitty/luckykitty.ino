@@ -27,7 +27,7 @@ test if changing the sdio flag for tensy allows spi1 access. if so gonna have a 
 //todo: issue getting the sd card to initialize when just attaching 5V power
 
 // sometimes the handle starts off as on (think this was sd card failing before we got to set input high)
-//todo: sometimes the audio loop thread doesn't quite start (could be delay issues?)
+// sometimes the audio loop thread doesn't quite start (seems to be fixed with updated playsound function)
 // sometimes get stuck trying to open the rstop/nyancat file, need to revisit sound logic (seems to have been issue with the play function)
 // sometimes sd card still doesnt initialize, seems like restarting works though? (think this was no direct connection to 5v power)
 //todo: setstripcolor is giving weird colors, check wiring
@@ -512,11 +512,10 @@ void resetState(){
     audioFile.close();
   }
   
-  //TODO: reset LEDs
-//  doLights();
-  setStripColor(170, 255, 0);
+  // reset LEDs
+  doLights();
   
-  //TODO: Make sure fire is off
+  // Make sure fire is off
   doFire();
   
   //TODO: Any other variables that need resetting
