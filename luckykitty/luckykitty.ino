@@ -666,7 +666,7 @@ void doLights(){
 
 // Sets the LED strip all to one colour
 void setStripColor(int g, int r, int b){
-  int color = strip.Color(g, r, b);
+  int color = strip.Color(r, g, b);
   for (int i = 0; i < strip.numPixels(); i++) {
     strip.setPixelColor(i, color);
   }
