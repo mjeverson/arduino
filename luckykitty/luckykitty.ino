@@ -28,8 +28,9 @@ test if changing the sdio flag for tensy allows spi1 access. if so gonna have a 
 
 // sometimes the handle starts off as on (think this was sd card failing before we got to set input high)
 //todo: sometimes the audio loop thread doesn't quite start (could be delay issues?)
-//todo: sometimes get stuck trying to open the rstop/nyancat file, need to revisit sound logic
+// sometimes get stuck trying to open the rstop/nyancat file, need to revisit sound logic (seems to have been issue with the play function)
 // sometimes sd card still doesnt initialize, seems like restarting works though? (think this was no direct connection to 5v power)
+//todo: setstripcolor is giving weird colors, check wiring
 
 // schematic changes
 - sd card needs direct 5v power
@@ -250,12 +251,12 @@ void playReelLoop(){
 // OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
 void rollSlots(){  
   // Start playing rolling sound
-//  int playReelLoopID = threads.addThread(playReelLoop);
-    if(audioFile = sd2.open("reel16.wav")){
-      Serial.print("About to play reel!");
-      playWav1.play(audioFile);
-      delay(10);
-    } 
+  int playReelLoopID = threads.addThread(playReelLoop);
+//    if(audioFile = sd2.open("reel16.wav")){
+//      Serial.print("About to play reel!");
+//      playWav1.play(audioFile);
+//      delay(10);
+//    } 
   
   // Calculate win state
   int winRoll = random(1,20); 
@@ -386,11 +387,14 @@ void rollSlots(){
   }
 
   Serial.println("About to kill thread");
-//  threads.kill(playReelLoopID);
+  threads.kill(playReelLoopID);
 
   playSound("rstop16.wav");
-
-  delay(500);
+  delay(10);
+  
+  while(playWav1.isPlaying()){
+    Serial.println("Waiting for rstop16 audio to finish!");
+  }
 }
 
 void doWinState(){
@@ -441,7 +445,13 @@ void doWinState(){
     
     //TODO: sound: mario 1up/coin
     playSound("coin16.wav");
-    //playSound("1up16.wav");
+    delay(10);
+    
+    while(playWav1.isPlaying()){
+      delay(10);
+    }
+    
+    playSound("1up16.wav");
     
   } else if (winState == WINSTATE_FIRE) {
     Serial.println("doWinState fire");
@@ -465,7 +475,6 @@ void doWinState(){
     
     // Sound: cheesy poofs
     playSound("cheesy16.wav");
-    
   } else if (winState == WINSTATE_PINCHY) {
     Serial.println("doWinState pinchy");
     
@@ -480,18 +489,9 @@ void doWinState(){
   } 
 
   //TODO: min amount of time before running off to resetState(). While sound is playing or some max time has reached or something
-//  while(playWav1.isPlaying()){
-//    Serial.println("Waiting for winstate audio to finish!");
-//  }
-
-//  playWav1.stop();
-  
-  if(audioFile){
-    Serial.println("closing audioFile from dowinstate");
-    audioFile.close();
+  while(playWav1.isPlaying()){
+    Serial.println("Waiting for winstate audio to finish!");
   }
-  
-  delay(500);
 }
 
 //TODO: Set everything back to normal state for another round
@@ -508,11 +508,13 @@ void resetState(){
   // Stop audio
   playWav1.stop();
   if(audioFile){
+    Serial.println("closing audioFile from resetState");
     audioFile.close();
   }
   
   //TODO: reset LEDs
-  doLights();
+//  doLights();
+  setStripColor(170, 255, 0);
   
   //TODO: Make sure fire is off
   doFire();
@@ -532,7 +534,8 @@ void playSound(char* filename){
     }
     
     if(audioFile = sd2.open(filename)){
-      Serial.println("Playing nyancat");
+      Serial.println("Playing: ");
+      Serial.print(filename);
       playWav1.play(audioFile);
     } else {
       Serial.println("problem opening sound file");
