@@ -15,16 +15,27 @@ Notes:
 TODO: Threading!
   https://github.com/ftrias/TeensyThreads
 
-TODO: Might have some threading issues wherever we use delay()
-//todo: probably need a 2nd SD card to read in parallel with images. Test the SD card reader with nothing else on SPI1, if that works we can try SPI2.
-test if changing the sdio flag for tensy allows spi1 access. if so gonna have a problem
+// TODO: Might have some threading issues wherever we use delay()
 //todo: alternatively, try buffering wav files in memory if there's room? <250kb per sound byte would work, maybe even try smaller wavs or mp3s or something?
+//todo: occasionally fails to initialize SD card on upload, does resetting it always work?
+//todo: weird scraping sound when playing nyancat while doing rainbow (even after nyancat ends)
+//todo: rainbow fade is too slow
+//todo: def some kind of weird memory leak going on after runs for a few mins. occasionally doesn't play reels
+//todo: might need to swap to clock watch over delay 
+
+//solved
 // second SD card issue is a clock speed problem with the teensy, 24MHz/96MHz/192 works but higher seems to fail
-// Sometimes fails to initialize SD card on upload, does resetting it always work?
-//todo: audio crackling
-//todo: better looping audio for reels or better track altogether
-//todo: def some kind of weird memory leak going on after runs for a few mins. Inconsistently skipping final nyan cat
-//todo: issue getting the sd card to initialize when just attaching 5V power
+// issue getting the sd card to initialize when just attaching 5V power (was a problem not connecting to ground and power of arduino AND supply)
+// sometimes the handle starts off as on (think this was sd card failing before we got to set input high)
+// sometimes the audio loop thread doesn't quite start (seems to be fixed with updated playsound function)
+// sometimes get stuck trying to open the rstop/nyancat file, need to revisit sound logic (seems to have been issue with the play function)
+// sometimes sd card still doesnt initialize, seems like restarting works though? (think this was no direct connection to 5v power)
+// setstripcolor is giving weird colors, check wiring (was a problem with grbw leds)
+
+// schematic changes
+- sd card needs direct 5v power
+- handle needs o be a2 not a1, also connects to other gnd
+- make sure that teens gnd connects to 5v gnd directly
 
   References:
   //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
@@ -42,7 +53,7 @@ test if changing the sdio flag for tensy allows spi1 access. if so gonna have a 
 #include <Audio.h>
 
 // Handle mechanism
-#define HANDLE A1 
+#define HANDLE A2
 
 // Solenoids
 #define SOL1 20
@@ -59,10 +70,10 @@ AudioConnection patchCord1(playWav1, 0, audioOutput, 0);
 // Valid output pins: //2-10, 14, 16-17, 20-23, 29-30, 35-38
 #define TENTACLE_SERVO 35
 #define COIN_SERVO 36
-#define NEOPIXEL 38
-#define NUM_PIXELS 16
+#define PIXEL 38
+#define NUM_PIXELS 90
 // Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
-//Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, NEOPIXEL, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIXEL, NEO_GRBW + NEO_KHZ800);
 
 Servo tentacleServo;
 Servo coinServo;  
@@ -96,7 +107,8 @@ Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC, MOSI1, SCK1, -1, MISO1);
 #define NUM_SLOTS 6
 int winState, slot1_current, slot2_current, slot3_current; 
 char* images[] = {"nyanf.bmp", "tentf.bmp", "coinf.bmp", "firef.bmp", "cheesef.bmp", "pinchyf.bmp"};
-//char* sounds[] = {"nyan.wav", "scream.wav", "mario.wav", "hth.wav", "cheesy.wav", "pinchy.wav", "roll.wav"};
+//TODO: maybe make these defined constants
+//char* sounds[] = {"nyan16.wav", "scream16.wav", "coin16.wav", "1up16.wav", "hth16.wav", "cheesy16.wav", "pinchy16.wav", "roll16.wav", "rstop16.wav", "loss16.bmp"};
 
 // Onboard Teensy 3.6 SD Slot
 const uint8_t SD_CHIP_SELECT = SS;
@@ -123,6 +135,28 @@ void setup() {
   tft2.fillScreen(HX8357_BLUE);
   tft3.fillScreen(HX8357_BLUE);
 
+  // Set up sound player
+  Wire.begin(); 
+  AudioMemory(8); //was 8
+
+  // Set up handle listener
+  pinMode(HANDLE, INPUT_PULLUP);
+  digitalWrite(HANDLE, HIGH);
+  delay(500);
+
+  // Set up solenoid
+  pinMode(SOL1, OUTPUT);
+  pinMode(SOL2, OUTPUT);
+  pinMode(SOL3, OUTPUT);
+  pinMode(SOL4, OUTPUT);
+
+  //Set up servos
+  tentacleServo.attach(TENTACLE_SERVO);
+  coinServo.attach(COIN_SERVO);
+
+  // Set up LEDs. Some default colour to indicate ready to go
+  strip.begin();
+
   // Initialize the SD card
   Serial.println("Initializing SD card...");
   uint32_t t = millis();
@@ -138,7 +172,7 @@ void setup() {
   }
 
   // This didn't work when attached only to 5V power. All this was was the 3.3V & GND needed to connect directly to teensy & also to power supply ground 
-  //todo: why does it need direct connection to power supply GND and teensy GND when both of those things are connected?
+  //todo: why does it need direct connection to power supply GND and teensy GND when both of those things are connected? probably because i need to connect the teensy gnd directly to the power supply ground
   if (!sd2.begin(SOUND_SD_CHIP_SELECT)) {
     Serial.println("\nSound cardBegin failed");
     return;
@@ -148,27 +182,8 @@ void setup() {
   
   Serial.println("\ninit time: ");
   Serial.print(t);
-
-  // Set up sound player
-  Wire.begin(); 
-  AudioMemory(8); //was 8
-
-  // Set up handle listener
-  pinMode(HANDLE, INPUT_PULLUP);
-
-  // Set up solenoid
-  pinMode(SOL1, OUTPUT);
-  pinMode(SOL2, OUTPUT);
-  pinMode(SOL3, OUTPUT);
-  pinMode(SOL4, OUTPUT);
-
-  //Set up servos
-  tentacleServo.attach(TENTACLE_SERVO);
-  coinServo.attach(COIN_SERVO);
-
-  // Set up LEDs. Some default colour to indicate ready to go
-  strip.begin();
-
+  //End SD card init
+  
   // Initializes the state of the peripherals
   resetState();
 
@@ -179,28 +194,20 @@ void setup() {
   bmpDraw(images[slot1_current], 0, 0, tft);
   bmpDraw(images[slot2_current], 0, 0, tft2);
   bmpDraw(images[slot3_current], 0, 0, tft3);
+
+  delay(10);
 }
 
 void loop() {
-//  Serial.print("\nPull handle to begin slots!\n");
-//  while (digitalRead(HANDLE)){
-//    SysCall::yield();
-//  }
+  Serial.print("\nPull handle to begin slots!\n");
 
-  // For now do this in a serial read. Normally will need to wait for handle mechanism
-  Serial.print("\nPress any key to begin slots!\n");
-
-  //TODO: Read any existing Serial data. (won't need this once we swap to handle)
-  while (!Serial.available()) {}
-
+  while (digitalRead(HANDLE)){
+    delay(10);
+  }
+  
   rollSlots();
   doWinState();
   resetState();
-
-  //TODO: Clean up any available serial data (won't need this once we swap to handle)
-  do {
-    delay(10);
-  } while (Serial.available() && Serial.read() >= 0);
 }
 
 File audioFile;
@@ -208,7 +215,7 @@ File audioFile;
 void playReelLoop(){
   while(true){
     //TODO: Change this to a while and then call out to the custom play function?
-    while(!playWav1.isPlaying()){
+    if(!playWav1.isPlaying()){
       if (audioFile){
         audioFile.close();
       }
@@ -216,7 +223,9 @@ void playReelLoop(){
       if(audioFile = sd2.open("reel16.wav")){
         Serial.print("About to play reel!");
         playWav1.play(audioFile);
-      } 
+      } else {
+        Serial.print("problem opening sound file in loop");
+      }
     }
 
     //TODO: might not even need this?
@@ -233,11 +242,9 @@ void playReelLoop(){
 void rollSlots(){  
   // Start playing rolling sound
   int playReelLoopID = threads.addThread(playReelLoop);
-  
+
   // Calculate win state
   int winRoll = random(1,20); 
-  Serial.println("winRoll: ");
-  Serial.print(winRoll);
   
   // Calcuate partial fail slot displays
   int falseWinSlot, falseWinSlotOdd;
@@ -306,55 +313,49 @@ void rollSlots(){
   // only let the first slot move for the first iteration, then add the second for the next two, then start the third
   // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
   while(index < minRollsBeforeStopping || slot1_current != slot1_end || slot2_current != slot2_end || slot3_current != slot3_end || index < slot2_stoppedAt + 2) {
-    Serial.print("\n index: ");
-    Serial.print(index + "\n");
-
     if (index < minRollsBeforeStopping || slot1_current != slot1_end){
       slot1_current++;
       slot1_current = slot1_current > 5 ? 0 : slot1_current;
 
-      Serial.print("Loading slot 1, is: ");
-      Serial.print(slot1_current);
-      Serial.print(", should be: ");
-      Serial.print(slot1_end);
-      Serial.println("");
+//      Serial.print("Loading slot 1, is: ");
+//      Serial.print(slot1_current);
+//      Serial.print(", should be: ");
+//      Serial.print(slot1_end);
+//      Serial.println("");
       
       bmpDraw(images[slot1_current], 0, 0, tft);
     }
     
     if (index >= minRollsBeforeStopping && slot1_current == slot1_end && slot1_stoppedAt == -1) {
       slot1_stoppedAt = index;
-      Serial.println("slot 1 stopped at this index");
-      
     }
   
     if (index >= 1 && (index < minRollsBeforeStopping || slot1_stoppedAt == -1 || (slot1_stoppedAt > -1 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
       slot2_current++;
       slot2_current = slot2_current > 5 ? 0 : slot2_current;
 
-      Serial.print("Loading slot 2, is: ");
-      Serial.print(slot2_current);
-      Serial.print(" should be: ");
-      Serial.print(slot2_end);
-      Serial.println("");
+//      Serial.print("Loading slot 2, is: ");
+//      Serial.print(slot2_current);
+//      Serial.print(" should be: ");
+//      Serial.print(slot2_end);
+//      Serial.println("");
       
       bmpDraw(images[slot2_current], 0, 0, tft2);
     } 
     
     if (index >= minRollsBeforeStopping && slot1_stoppedAt > -1 && index >= slot1_stoppedAt + 2 && slot2_current == slot2_end && slot2_stoppedAt == -1) {
       slot2_stoppedAt = index;
-      Serial.println("slot 2 stopped at this index");
     }
     
     if (index >= 3 && (index < minRollsBeforeStopping || slot2_stoppedAt == -1  || (slot2_stoppedAt > -1 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
       slot3_current++;
       slot3_current = slot3_current > 5 ? 0 : slot3_current;
 
-      Serial.print("Loading slot 3, is: ");
-      Serial.print(slot3_current);
-      Serial.print(" should be: ");
-      Serial.print(slot3_end);
-      Serial.println("");
+//      Serial.print("Loading slot 3, is: ");
+//      Serial.print(slot3_current);
+//      Serial.print(" should be: ");
+//      Serial.print(slot3_end);
+//      Serial.println("");
       
       bmpDraw(images[slot3_current], 0, 0, tft3);
     }
@@ -362,158 +363,124 @@ void rollSlots(){
     index++;
   }
 
-  Serial.println("About to kill thread");
   threads.kill(playReelLoopID);
-  playWav1.stop();
 
-  //todo: can probably reduce or eliminate this delay
-  delay(500);
-
-  // This occasionally gets skipped, keep retrying til it plays
-  //todo: this could probably be its own method playSound("rstop16.wav");
-  while(!playWav1.isPlaying()){
-    if(audioFile){
-      Serial.println("closing redundant audioFile inside while loop");
-      audioFile.close();
-    }
-    
-    if(audioFile = sd2.open("rstop16.wav")){
-      Serial.print("About to play rstop");
-      playWav1.play(audioFile);
-      delay(500);
-    }
-  }
-
-  //TODO: Can remove this in final operation - maybe add a #debug flag for this sort of thing?
+  playSound("rstop16.wav");
+  delay(10);
+  
   while(playWav1.isPlaying()){
-    Serial.println("Waiting for rstop to finish");
-    delay(50);
+    Serial.println("Waiting for rstop16 audio to finish!");
+    delay(10);
   }
-
-  playWav1.stop();
-
-  // TODO: Might not need this, it should be handled by the while loop we're going to extract
-  if (audioFile){
-    Serial.println("closing audioFile from rstop");
-    audioFile.close();
-  }
-
-  delay(500);
 }
 
 void doWinState(){
   //based on win state do sounds, fire, etc.
   //TODO: Probably gonna need to break some of this stuff out into threads. Lights, Fire, Servo 1 and servo 2 (sound's okay)
   //TODO: could change image on screen for victory if we want
-  if (winState == WINSTATE_NYAN) {
-    Serial.println("doWinState nyan");
+  switch (winState) {
+    case WINSTATE_NYAN: 
+      Serial.println("doWinState nyan");
 
-    //TODO: Do the fire. Might need to swap to clock watching
-//    doFire();
-    
-    //TODO: LEDs: nyancat rainbow marquee
-//    doLights();
-   
-    // Sound: Nyancat. This occasionally gets skipped. Some weird timing thing? wait til it starts playing.
-    playSound("nyan16.wav");
-//    while(!playWav1.isPlaying()){
-//      if(audioFile){
-//        Serial.println("closing redundant audioFile inside while loop");
-//        audioFile.close();
-//      }
-//      
-//      if(audioFile = sd2.open("nyan16.wav")){
-//        Serial.println("Playing nyancat");
-//        playWav1.play(audioFile);
-//        delay(500);
-//      }
-//    }
-    
-    //TODO: something like wait til all threads are done before continuing? threads.wait(n)
-    //TODO: Could also do a while where we just poll until all threads have completed, while(threads.getState(n) == Threads::RUNNING)){}
-    //TODO: Do we need to clear thread_func_id once the thread ends?
-  } else if (winState == WINSTATE_TENTACLE) {
-    Serial.println("doWinState tentacle");
-
-    // Wave the tentacle
-    //  doTentacle();
-    
-    //fire: all at once
-    //  doFire();
-    
-    //TODO: LEDs: green
-    //    doLights();
-    
-    //TODO: Sound: person screaming
-    //playSound("scream16.wav");
-    
-  } else if (winState == WINSTATE_COIN) {
-    Serial.println("doWinState coin");
-
-    // Dispense a coin
-    //  doCoin();
-    
-    // fire: 1-3-2-4-all
-    //    doFire();
-    
-    //TODO: LEDs: Yellow
-    //    doLights();
-    
-    //TODO: sound: mario 1up/coin
-    //playSound("coin16.wav");
-    
-  } else if (winState == WINSTATE_FIRE) {
-    Serial.println("doWinState fire");
-    
-    // fire all 4 x3
-    //    doFire();
-    
-    //TODO: LEDs: Red
-    //    doLights();
-    
-    //TODO: sound: highway to hell
-    //playSound("hth16.wav");
-  } else if (winState == WINSTATE_CHEESY) {
-    Serial.println("doWinState cheesy");
-    
-    // no fire
-    //    doFire();
-    
-    // LEDs: orange
-    //    doLights();
-    
-    // Sound: cheesy poofs
-    //playSound("cheesy16.wav");
-    
-  } else if (winState == WINSTATE_PINCHY) {
-    Serial.println("doWinState pinchy");
-    
-    // fire all 4
-    //    doFire();
-
-    // LEDs: Red
-    //    doLights();
-    
-    // Sound: PINCHAY
-    //playSound("pinchy16.wav");
+      // Sound: Nyancat. This occasionally gets skipped. Some weird timing thing? wait til it starts playing.
+      playSound("nyan16.wav");
+  
+      //TODO: Do the fire. Might need to swap to clock watching
+  //    doFire();
+      
+      // LEDs: nyancat rainbow marquee
+      doLights();
+      
+      //TODO: something like wait til all threads are done before continuing? threads.wait(n)
+      //TODO: Could also do a while where we just poll until all threads have completed, while(threads.getState(n) == Threads::RUNNING)){}
+      //TODO: Do we need to clear thread_func_id once the thread ends?
+      break;
+    case WINSTATE_TENTACLE:
+      Serial.println("doWinState tentacle");
+  
+      // Wave the tentacle
+      //  doTentacle();
+      
+      //fire: all at once
+      //  doFire();
+      
+      // LEDs: green
+      doLights();
+      
+      // Sound: person screaming
+      playSound("scream16.wav");
+      break;
+    case WINSTATE_COIN:
+      Serial.println("doWinState coin");
+  
+      // Dispense a coin
+      //  doCoin();
+      
+      // fire: 1-3-2-4-all
+      //    doFire();
+      
+      // LEDs: Yellow
+      doLights();
+      
+      //TODO: sound: mario 1up/coin
+      playSound("coin16.wav");
+      delay(10);
+      
+      while(playWav1.isPlaying()){
+        delay(10);
+      }
+      
+      playSound("1up16.wav");
+      break;
+    case WINSTATE_FIRE:
+      Serial.println("doWinState fire");
+      
+      // fire all 4 x3
+      //    doFire();
+      
+      // LEDs: Red
+      doLights();
+      
+      // sound: highway to hell
+      playSound("hth16.wav");
+      break;
+    case WINSTATE_CHEESY:
+      Serial.println("doWinState cheesy");
+      
+      // no fire
+      //    doFire();
+      
+      // LEDs: orange
+      doLights();
+      
+      // Sound: cheesy poofs
+      playSound("cheesy16.wav");
+      break;
+    case WINSTATE_PINCHY:
+      Serial.println("doWinState pinchy");
+      
+      // fire all 4
+      //    doFire();
+  
+      // LEDs: Red
+      doLights();
+      
+      // Sound: PINCHAY
+      playSound("pinchy16.wav");
+      break;
+    default: 
+    //TODO: need this sound
+//      playSound("loss16.wav");
+      break;
   } 
 
   //TODO: min amount of time before running off to resetState(). While sound is playing or some max time has reached or something
-//  while(playWav1.isPlaying()){
-//    Serial.println("Waiting for winstate audio to finish!");
-//  }
-  delay(5000);
-  playWav1.stop();
-  
-  if(audioFile){
-    Serial.println("closing audioFile from dowinstate");
-    audioFile.close();
+  while(playWav1.isPlaying()){
+    Serial.println("Waiting for winstate audio to finish!");
   }
-  
-  delay(500);
 }
 
-//TODO: Set everything back to normal state for another round
+//TODO: Set everything back to normal state for another round. are we missing anything?
 void resetState(){
   Serial.println("Round over, state reset!");
 
@@ -530,21 +497,17 @@ void resetState(){
     audioFile.close();
   }
   
-  //TODO: reset LEDs
+  // reset LEDs
   doLights();
-  
-  //TODO: Make sure fire is off
+
+  // Make sure fire is off
   doFire();
-  
-  //TODO: Any other variables that need resetting
 }
 
 // Stops any existing sound, makes sure the file is closed, then keeps attempting to play the sound until it actually starts
 void playSound(char* filename){
   playWav1.stop();
-
-  //TODO: Might not need this
-  delay(500);
+  delay(10); //TODO: Might not need this
   
   while(!playWav1.isPlaying()){
     if(audioFile){
@@ -553,14 +516,18 @@ void playSound(char* filename){
     }
     
     if(audioFile = sd2.open(filename)){
-      Serial.println("Playing nyancat");
-      playWav1.play(filename);
-      delay(500);
+      Serial.println("Playing: ");
+      Serial.print(filename);
+      playWav1.play(audioFile);
+    } else {
+      Serial.println("problem opening sound file");
     }
+
+    delay(10);
   }
 }
 
-//TODO: Do the fire. Might need to swap to clock watching
+// Do the fire. Might need to swap to clock watching
 void doFire(){
   Serial.println("doing fire");
 
@@ -570,7 +537,7 @@ void doFire(){
       fireSequential(false);
       fireSequential(true);
       break;
-     case WINSTATE_TENTACLE:
+    case WINSTATE_TENTACLE:
       // all at once
       fireAll();
       break;
@@ -601,7 +568,7 @@ void doFire(){
 }
 
 // Triggers all four solenoids
-fireAll(){
+void fireAll(){
   digitalWrite(SOL1, HIGH);
   digitalWrite(SOL2, HIGH);
   digitalWrite(SOL3, HIGH);
@@ -615,7 +582,7 @@ fireAll(){
 }
 
 // Triggers a  sequential pattern of 1-2-3-4, or reverse
-fireSequential(boolean reverse){
+void fireSequential(boolean reverse){
   if(!reverse){
     digitalWrite(SOL1, HIGH);
     delay(250);
@@ -668,7 +635,7 @@ void doLights(){
   switch (winState) {
     case WINSTATE_NYAN: 
       // nyan rainbow colours
-      rainbowCycle(50);
+      rainbowCycle(10);
       break;
      case WINSTATE_TENTACLE:
       // green 
@@ -698,13 +665,12 @@ void doLights(){
 }
 
 // Sets the LED strip all to one colour
-void setStripColor(int g, int r, int b, int wait){
+void setStripColor(int r, int g, int b){
   for (int i = 0; i < strip.numPixels(); i++) {
-    strip.setPixelColor(i, g, r, b);
+    strip.setPixelColor(i, r, g, b);
   }
 
   strip.show();
-  delay(wait);
 }
 
 // Makes the rainbow equally distributed throughout
