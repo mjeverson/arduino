@@ -16,11 +16,9 @@ TODO: Threading!
   https://github.com/ftrias/TeensyThreads
 
 // TODO: Might have some threading issues wherever we use delay()
-//todo: alternatively, try buffering wav files in memory if there's room? <250kb per sound byte would work, maybe even try smaller wavs or mp3s or something?
 //todo: occasionally fails to initialize SD card on upload, does resetting it always work?
-//todo: weird scraping sound when playing nyancat while doing rainbow (even after nyancat ends)
+//todo: weird scraping sound when playing nyancat while doing rainbow (even after nyancat ends, probably related to delays?)
 //todo: rainbow fade is too slow
-//todo: def some kind of weird memory leak going on after runs for a few mins. occasionally doesn't play reels
 //todo: might need to swap to clock watch over delay 
 
 //solved
@@ -31,6 +29,7 @@ TODO: Threading!
 // sometimes get stuck trying to open the rstop/nyancat file, need to revisit sound logic (seems to have been issue with the play function)
 // sometimes sd card still doesnt initialize, seems like restarting works though? (think this was no direct connection to 5v power)
 // setstripcolor is giving weird colors, check wiring (was a problem with grbw leds)
+// def some kind of weird memory leak going on after runs for a few mins. occasionally doesn't play reels (think this was related to the file close issue)
 
 // schematic changes
 - sd card needs direct 5v power
@@ -137,7 +136,7 @@ void setup() {
 
   // Set up sound player
   Wire.begin(); 
-  AudioMemory(8); //was 8
+  AudioMemory(8); 
 
   // Set up handle listener
   pinMode(HANDLE, INPUT_PULLUP);
@@ -674,6 +673,7 @@ void setStripColor(int r, int g, int b){
 }
 
 // Makes the rainbow equally distributed throughout
+//TODO: This isn't quite what we want and also the delay fucks with sounds and stuff, do clock watching
 void rainbowCycle(uint8_t wait) {
   uint16_t i, j;
  
@@ -726,6 +726,7 @@ void doTentacle(){
 
 // Triggers the coin dispenser to dispense a coin
 void doCoin(){
+  //TODO: Might have to become a clock watcher for stuff like this if it messes with threads
   coinServo.write(180); 
   delay(500);
   coinServo.write(0);
