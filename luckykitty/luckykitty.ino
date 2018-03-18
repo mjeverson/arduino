@@ -16,9 +16,11 @@ TODO: Threading!
   https://github.com/ftrias/TeensyThreads
 
 // TODO: Might have some threading issues wherever we use delay()
+//todo: alternatively, try buffering wav files in memory if there's room? <250kb per sound byte would work, maybe even try smaller wavs or mp3s or something?
 //todo: occasionally fails to initialize SD card on upload, does resetting it always work?
-//todo: weird scraping sound when playing nyancat while doing rainbow (even after nyancat ends, probably related to delays?)
+//todo: weird scraping sound when playing nyancat while doing rainbow (even after nyancat ends)
 //todo: rainbow fade is too slow
+//todo: def some kind of weird memory leak going on after runs for a few mins. occasionally doesn't play reels
 //todo: might need to swap to clock watch over delay 
 
 //solved
@@ -29,7 +31,6 @@ TODO: Threading!
 // sometimes get stuck trying to open the rstop/nyancat file, need to revisit sound logic (seems to have been issue with the play function)
 // sometimes sd card still doesnt initialize, seems like restarting works though? (think this was no direct connection to 5v power)
 // setstripcolor is giving weird colors, check wiring (was a problem with grbw leds)
-// def some kind of weird memory leak going on after runs for a few mins. occasionally doesn't play reels (think this was related to the file close issue)
 
 // schematic changes
 - sd card needs direct 5v power
@@ -45,7 +46,7 @@ TODO: Threading!
 //#include <HX8357_t3.h> // Hardware-specific library. Faster, but doesn't seem to render the image on the screen?
 #include <SPI.h>
 #include "SdFat.h" //not compatible with audio OOB may need to do some stuff
-#include <Servo.h> // Tentacle & Coin
+#include <PWMServo.h> // Tentacle & Coin
 #include <Wire.h> // Amp controller
 #include <TeensyThreads.h> // Threading
 #include <Adafruit_NeoPixel.h> // LED Stuff
@@ -74,8 +75,8 @@ AudioConnection patchCord1(playWav1, 0, audioOutput, 0);
 // Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIXEL, NEO_GRBW + NEO_KHZ800);
 
-Servo tentacleServo;
-Servo coinServo;  
+PWMServo tentacleServo;
+PWMServo coinServo;  
 int tentacleServoPos = 0;
 int coinServoPos = 0;
 
@@ -107,7 +108,7 @@ Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC, MOSI1, SCK1, -1, MISO1);
 int winState, slot1_current, slot2_current, slot3_current; 
 char* images[] = {"nyanf.bmp", "tentf.bmp", "coinf.bmp", "firef.bmp", "cheesef.bmp", "pinchyf.bmp"};
 //TODO: maybe make these defined constants
-//char* sounds[] = {"nyan16.wav", "scream16.wav", "coin16.wav", "1up16.wav", "hth16.wav", "cheesy16.wav", "pinchy16.wav", "roll16.wav", "rstop16.wav", "loss16.wav"};
+//char* sounds[] = {"nyan16.wav", "scream16.wav", "coin16.wav", "1up16.wav", "hth16.wav", "cheesy16.wav", "pinchy16.wav", "roll16.wav", "rstop16.wav", "loss16.bmp"};
 
 // Onboard Teensy 3.6 SD Slot
 const uint8_t SD_CHIP_SELECT = SS;
@@ -136,7 +137,7 @@ void setup() {
 
   // Set up sound player
   Wire.begin(); 
-  AudioMemory(8); 
+  AudioMemory(8); //was 8
 
   // Set up handle listener
   pinMode(HANDLE, INPUT_PULLUP);
@@ -203,6 +204,10 @@ void loop() {
   while (digitalRead(HANDLE)){
     delay(10);
   }
+
+// debug 
+//  doTentacle();
+//  doCoin();
   
   rollSlots();
   doWinState();
@@ -468,7 +473,6 @@ void doWinState(){
       playSound("pinchy16.wav");
       break;
     default: 
-      // Sound: Loss need this sound
       playSound("loss16.wav");
       break;
   } 
@@ -487,7 +491,7 @@ void resetState(){
   winState = WINSTATE_NONE;
   
   // Reset coin and tentacle servo positions
-  tentacleServo.write(0);
+  tentacleServo.write(-90);
   coinServo.write(0);
   
   // Stop audio
@@ -638,7 +642,7 @@ void doLights(){
       break;
      case WINSTATE_TENTACLE:
       // green 
-      setStripColor(255, 0, 0);
+      setStripColor(0, 255, 0);
       break;
     case WINSTATE_COIN:
       // yellow
@@ -646,7 +650,7 @@ void doLights(){
       break;
     case WINSTATE_FIRE:
       // red
-      setStripColor(0, 255, 0);
+      setStripColor(255, 0, 0);
       break;
     case WINSTATE_CHEESY:
       // orange
@@ -654,10 +658,11 @@ void doLights(){
       break;
     case WINSTATE_PINCHY:
       // Red
-      setStripColor(0, 255, 0);
+      setStripColor(255, 0, 0);
       break;
     default:
       // White
+      //TODO: since this is rgbw try (0,0,0,255) here?
       setStripColor(255, 255, 255);
       break;
   }
@@ -673,7 +678,6 @@ void setStripColor(int r, int g, int b){
 }
 
 // Makes the rainbow equally distributed throughout
-//TODO: This isn't quite what we want and also the delay fucks with sounds and stuff, do clock watching
 void rainbowCycle(uint8_t wait) {
   uint16_t i, j;
  
@@ -683,7 +687,7 @@ void rainbowCycle(uint8_t wait) {
     }
     
     strip.show();
-    delay(50);
+    delay(1);
   }
 }
  
@@ -705,29 +709,31 @@ uint32_t Wheel(byte WheelPos) {
 void doTentacle(){
   //TODO: Might have to become a clock watcher for stuff like this if it messes with threads
   //eg. take time t = millis() here, put a while loop after this until n ms have passed
-  tentacleServo.write(180); 
+  Serial.println("About to do tentacle");
+  //-90 0 90
+  tentacleServo.write(90); 
   delay(500);
 
-  tentacleServo.write(90); 
-  delay(300);
-
-  tentacleServo.write(180); 
+  tentacleServo.write(0); 
   delay(300);
 
   tentacleServo.write(90); 
   delay(300);
 
-  tentacleServo.write(180); 
+  tentacleServo.write(0); 
+  delay(300);
+
+  tentacleServo.write(90); 
   delay(500);
   
-  tentacleServo.write(0);
+  tentacleServo.write(-90);
 }
 
 
 // Triggers the coin dispenser to dispense a coin
 void doCoin(){
-  //TODO: Might have to become a clock watcher for stuff like this if it messes with threads
-  coinServo.write(180); 
+  Serial.println("About to do coin");
+  coinServo.write(90); 
   delay(500);
   coinServo.write(0);
 }
