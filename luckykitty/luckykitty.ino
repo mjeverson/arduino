@@ -70,6 +70,7 @@ AudioConnection patchCord1(playWav1, 0, audioOutput, 0);
 // Valid output pins: //2-10, 14, 16-17, 20-23, 29-30, 35-38
 #define TENTACLE_SERVO 35
 #define COIN_SERVO 36
+#define SAFETY_PIXEL 37
 #define PIXEL 38
 #define NUM_PIXELS 90
 // Adafruit_NeoPixel(number of pixels in strip, pin #, pixel type flags add as needed)
@@ -156,6 +157,7 @@ void setup() {
 
   // Set up LEDs. Some default colour to indicate ready to go
   strip.begin();
+  pinMode(SAFETY_PIXEL, OUTPUT);
 
   // Initialize the SD card
   Serial.println("Initializing SD card...");
@@ -502,6 +504,7 @@ void resetState(){
   
   // reset LEDs
   doLights();
+  analogWrite(SAFETY_PIXEL, 255);
 
   // Make sure fire is off
   doFire();
