@@ -22,6 +22,7 @@ TODO: Threading!
 //todo: rainbow fade is too slow
 //todo: def some kind of weird memory leak going on after runs for a few mins. occasionally doesn't play reels
 //todo: might need to swap to clock watch over delay 
+//todo: finish wiring up deadman button 12V LED
 
 //solved
 // second SD card issue is a clock speed problem with the teensy, 24MHz/96MHz/192 works but higher seems to fail
@@ -381,21 +382,31 @@ void rollSlots(){
 }
 
 void doWinState(){
+  int threadId = -1;// = threads.addThread(playReelLoop);
+  
   //based on win state do sounds, fire, etc.
   //TODO: Probably gonna need to break some of this stuff out into threads. Lights, Fire, Servo 1 and servo 2 (sound's okay)
   //TODO: could change image on screen for victory if we want
   switch (winState) {
     case WINSTATE_NYAN: 
       Serial.println("doWinState nyan");
+      //TODO: So start playing nyan cat, thread for the lights (loop for however long), then do the fire - after fire listen for nyan cat still playing, then kill lights thread
+
+      // Do Lights in a thread
+      int lightThreadId = threads.addThread(doLights);
 
       // Sound: Nyancat. This occasionally gets skipped. Some weird timing thing? wait til it starts playing.
       playSound("nyan16.wav");
-  
-      //TODO: Do the fire. Might need to swap to clock watching
-  //    doFire();
-      
-      // LEDs: nyancat rainbow marquee
-      doLights();
+
+      // Do the fire. Might need to swap to clock watching
+      int fireThreadId = threads.add(doFire);
+
+      // Wait for nyancat to finish playing, then kill the lights thread
+      while(playWav1.isPlaying() || threads.getState(fireThreadId) == Threads::RUNNING){
+        Serial.println("Waiting for nyancat to finish playing or fire to finish");
+      }
+
+      threads.kill(lightThreadId);
       
       //TODO: something like wait til all threads are done before continuing? threads.wait(n)
       //TODO: Could also do a while where we just poll until all threads have completed, while(threads.getState(n) == Threads::RUNNING)){}
@@ -403,31 +414,31 @@ void doWinState(){
       break;
     case WINSTATE_TENTACLE:
       Serial.println("doWinState tentacle");
-  
-      // Wave the tentacle
-      //  doTentacle();
-      
-      //fire: all at once
-      //  doFire();
-      
+      //TODO: Play scream, Change lights, thread for fire 
+
       // LEDs: green
       doLights();
-      
+
       // Sound: person screaming
       playSound("scream16.wav");
+  
+      // Wave the tentacle
+      int tentacleThreadId = threads.add(doTentacle);
+      
+      //fire: all at once
+      int fireThreadId = threads.add(fireAllThread);
+
+      while(threads.getState(tentacleThreadId) == Threads::RUNNING || threads.getState(fireThreadId) == Threads::RUNNING)){
+        Serial.println("Waiting for tentacle or fire thread");
+      }
+        
       break;
     case WINSTATE_COIN:
       Serial.println("doWinState coin");
-  
-      // Dispense a coin
-      //  doCoin();
-      
-      // fire: 1-3-2-4-all
-      //    doFire();
-      
+
       // LEDs: Yellow
       doLights();
-      
+
       //TODO: sound: mario 1up/coin
       playSound("coin16.wav");
       delay(10);
@@ -437,42 +448,54 @@ void doWinState(){
       }
       
       playSound("1up16.wav");
+
+      // Dispense a coin
+      doCoin();
+      
+      // fire: 1-3-2-4-all
+      doFire();
+      
       break;
     case WINSTATE_FIRE:
       Serial.println("doWinState fire");
-      
-      // fire all 4 x3
-      //    doFire();
-      
       // LEDs: Red
       doLights();
-      
+
       // sound: highway to hell
       playSound("hth16.wav");
+      
+      int fireThreadId = threads.add(doFire());
+
+      while(threads.getState(fireThreadId) == Threads::RUNNING)){
+        Serial.println("Waiting for tentacle or fire thread");
+      }
+      
       break;
     case WINSTATE_CHEESY:
       Serial.println("doWinState cheesy");
-      
-      // no fire
-      //    doFire();
       
       // LEDs: orange
       doLights();
       
       // Sound: cheesy poofs
       playSound("cheesy16.wav");
+
+      // no fire
+      doFire();
+      
       break;
     case WINSTATE_PINCHY:
       Serial.println("doWinState pinchy");
       
-      // fire all 4
-      //    doFire();
-  
       // LEDs: Red
       doLights();
       
       // Sound: PINCHAY
       playSound("pinchy16.wav");
+
+      // fire all 4
+      doFire();
+      
       break;
     default: 
       playSound("loss16.wav");
@@ -587,6 +610,20 @@ void fireAll(){
   delay(250);
 }
 
+// Triggers all four solenoids with thread delay
+void fireAllThread(){
+  digitalWrite(SOL1, HIGH);
+  digitalWrite(SOL2, HIGH);
+  digitalWrite(SOL3, HIGH);
+  digitalWrite(SOL4, HIGH);
+  threads.delay(500);
+  digitalWrite(SOL1, LOW);
+  digitalWrite(SOL2, LOW);
+  digitalWrite(SOL3, LOW);
+  digitalWrite(SOL4, LOW);
+  threads.delay(250);
+}
+
 // Triggers a  sequential pattern of 1-2-3-4, or reverse
 void fireSequential(boolean reverse){
   if(!reverse){
@@ -690,7 +727,7 @@ void rainbowCycle(uint8_t wait) {
     }
     
     strip.show();
-    delay(1);
+    threads.delay(1);
   }
 }
  
@@ -715,19 +752,19 @@ void doTentacle(){
   Serial.println("About to do tentacle");
   //-90 0 90
   tentacleServo.write(90); 
-  delay(500);
+  threads.delay(500);
 
   tentacleServo.write(0); 
-  delay(300);
+  threads.delay(300);
 
   tentacleServo.write(90); 
-  delay(300);
+  threads.delay(300);
 
   tentacleServo.write(0); 
-  delay(300);
+  threads.delay(300);
 
   tentacleServo.write(90); 
-  delay(500);
+  threads.delay(500);
   
   tentacleServo.write(-90);
 }
