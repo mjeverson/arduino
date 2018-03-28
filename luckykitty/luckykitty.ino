@@ -19,10 +19,9 @@ TODO: Threading!
 //todo: alternatively, try buffering wav files in memory if there's room? <250kb per sound byte would work, maybe even try smaller wavs or mp3s or something?
 //todo: occasionally fails to initialize SD card on upload, does resetting it always work?
 //todo: weird scraping sound when playing nyancat while doing rainbow (even after nyancat ends)
-//todo: rainbow fade is too slow
 //todo: def some kind of weird memory leak going on after runs for a few mins. occasionally doesn't play reels
-//todo: might need to swap to clock watch over delay 
-//todo: finish wiring up deadman button 12V LED
+//todo: rainbow fade is too slow
+//todo: Test tentacle winstate - might need to swap to clock watch over delay (wont work - clock watch would still have a while loop, so unless its in a thread... in which case threads.delay?
 
 //solved
 // second SD card issue is a clock speed problem with the teensy, 24MHz/96MHz/192 works but higher seems to fail
@@ -730,6 +729,7 @@ void rainbowCycle(uint8_t wait) {
     threads.delay(1);
   }
 }
+
  
 // Input a value 0 to 255 to get a color value.
 // The colours are a transition r - g - b - back to r.
