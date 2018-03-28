@@ -5,7 +5,7 @@
 
 Notes:
   For Speed:
-  - Run at 240mhz overclocked for ~500ms per screen
+  - Run at 240mhz overclocked for ~500ms per screen, but need to run at ~192MHz for the SD card SPI bus to work properly
   - smaller bmps rendered in the center of the screen if possible
   - Or the _t3 lib if we can get it working
   - 565 raw file instead of bmp?
