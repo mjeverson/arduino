@@ -735,16 +735,32 @@ void setStripColor(int r, int g, int b){
 
 // Makes the rainbow equally distributed throughout
 void rainbowCycleThread() {
-  uint16_t i, j;
- 
-  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+  uint16_t i;
+  uint16_t j = 0;
+
+  while(true){
+    if (j > 255){
+      j = 0;
+    }
+
     for(i=0; i< strip.numPixels(); i++) {
       strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
     }
     
     strip.show();
-    threads.delay(1);
+    threads.delay(10);
+
+    j++;
   }
+  
+//  for(j=0; j<256*10; j++) { // 10 cycles of all colors on wheel
+//    for(i=0; i< strip.numPixels(); i++) {
+//      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+//    }
+//    
+//    strip.show();
+//    threads.delay(10);
+//  }
 }
 
  
