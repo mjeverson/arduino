@@ -218,7 +218,8 @@ void loop() {
 
 File audioFile;
 
-void playReelLoop(){
+// Looping slot machine sound, intended to be run inside a thread and killed manually
+void playReelLoopThread(){
   while(true){
     if(!playWav1.isPlaying()){
       if (audioFile){
@@ -246,7 +247,7 @@ void playReelLoop(){
 // OR just let the first slot start one or two early, then the second slot, then the third slot. let them roll a few times, then do it all again. Don't need global state
 void rollSlots(){  
   // Start playing rolling sound
-  int playReelLoopID = threads.addThread(playReelLoop);
+  int playReelLoopThreadID = threads.addThread(playReelLoopThread);
 
   // Calculate win state
   int winRoll = random(1,20); 
@@ -347,7 +348,7 @@ void rollSlots(){
     index++;
   }
 
-  threads.kill(playReelLoopID);
+  threads.kill(playReelLoopThreadID);
 
   playSound("rstop16.wav");
   delay(10);
@@ -733,7 +734,7 @@ void setStripColor(int r, int g, int b){
   strip.show();
 }
 
-// Makes the rainbow equally distributed throughout
+// Makes the rainbow equally distributed throughout, intended to be run inside a thread and killed manually
 void rainbowCycleThread() {
   uint16_t i;
   uint16_t j = 0;
