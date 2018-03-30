@@ -12,16 +12,8 @@ Notes:
   - Raspberry pi?
   - Can't loop audio in a thread while rendering without huge slowdown
 
-TODO: Threading!
-  https://github.com/ftrias/TeensyThreads
-
-// TODO: Might have some threading issues wherever we use delay()
-//todo: alternatively, try buffering wav files in memory if there's room? <250kb per sound byte would work, maybe even try smaller wavs or mp3s or something?
+//todo: optimize image rendering speed
 //todo: occasionally fails to initialize SD card on upload, does resetting it always work?
-//todo: weird scraping sound when playing nyancat while doing rainbow (even after nyancat ends)
-//todo: def some kind of weird memory leak going on after runs for a few mins. occasionally doesn't play reels
-//todo: rainbow fade is too slow
-//todo: Test tentacle winstate - might need to swap to clock watch over delay (wont work - clock watch would still have a while loop, so unless its in a thread... in which case threads.delay?
 
 //solved
 // second SD card issue is a clock speed problem with the teensy, 24MHz/96MHz/192 works but higher seems to fail
@@ -31,14 +23,15 @@ TODO: Threading!
 // sometimes get stuck trying to open the rstop/nyancat file, need to revisit sound logic (seems to have been issue with the play function)
 // sometimes sd card still doesnt initialize, seems like restarting works though? (think this was no direct connection to 5v power)
 // setstripcolor is giving weird colors, check wiring (was a problem with grbw leds)
-
-// schematic changes
-- sd card needs direct 5v power
-- handle needs o be a2 not a1, also connects to other gnd
-- make sure that teens gnd connects to 5v gnd directly
+// rainbow fade is too slow
+// Test tentacle winstate - might need to swap to clock watch over delay (wont work - clock watch would still have a while loop, so unless its in a thread... in which case threads.delay?
+// alternatively, try buffering wav files in memory if there's room? <250kb per sound byte would work, maybe even try smaller wavs or mp3s or something?
+// Sort of, had to do with threading - weird scraping sound when playing nyancat while doing rainbow 
+// Fixed I think - def some kind of weird memory leak going on after runs for a few mins. occasionally doesn't play reels
 
   References:
-  //https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
+  // https://arduino.stackexchange.com/questions/26803/connecting-multiple-tft-panels-to-arduino-uno-via-spi
+  // https://github.com/ftrias/TeensyThreads
  ****************************************************/
 
 #include <Adafruit_GFX.h> // Core graphics library
