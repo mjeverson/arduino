@@ -105,11 +105,10 @@ Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC, MOSI1, SCK1, -1, MISO1);
 #define WINSTATE_FIRE 4
 #define WINSTATE_CHEESY 5
 #define WINSTATE_PINCHY 6
+#define WINSTATE_LOSS 7
 #define NUM_SLOTS 6
 int winState, slot1_current, slot2_current, slot3_current; 
 char* images[] = {"nyanf.bmp", "tentf.bmp", "coinf.bmp", "firef.bmp", "cheesef.bmp", "pinchyf.bmp"};
-//TODO: maybe make these defined constants
-//char* sounds[] = {"nyan16.wav", "scream16.wav", "coin16.wav", "1up16.wav", "hth16.wav", "cheesy16.wav", "pinchy16.wav", "roll16.wav", "rstop16.wav", "loss16.bmp"};
 
 // Onboard Teensy 3.6 SD Slot
 const uint8_t SD_CHIP_SELECT = SS;
@@ -138,7 +137,7 @@ void setup() {
 
   // Set up sound player
   Wire.begin(); 
-  AudioMemory(8); //was 8
+  AudioMemory(64); //was 8
 
   // Set up handle listener
   pinMode(HANDLE, INPUT_PULLUP);
@@ -207,10 +206,6 @@ void loop() {
     delay(10);
   }
 
-// debug 
-//  doTentacle();
-//  doCoin();
-  
   rollSlots();
   doWinState();
   resetState();
@@ -288,22 +283,22 @@ void rollSlots(){
     slot1_end = slot2_end = slot3_end = 5;
   } else if (winRoll <= 12) {
     // partial fail
-    winState = WINSTATE_NONE;
+    winState = WINSTATE_LOSS;
     slot1_end = slot2_end = falseWinSlot;
     slot3_end = falseWinSlotOdd;
   } else if (winRoll <= 14) {
     // Partial fail
-    winState = WINSTATE_NONE;
+    winState = WINSTATE_LOSS;
     slot1_end = slot3_end = falseWinSlot;
     slot2_end = falseWinSlotOdd;
   }else if (winRoll <= 16) {
     // Partial fail
-    winState = WINSTATE_NONE;
+    winState = WINSTATE_LOSS;
     slot2_end = slot3_end = falseWinSlot;
     slot1_end = falseWinSlotOdd;
   } else {
     // Total fail
-    winState = WINSTATE_NONE;
+    winState = WINSTATE_LOSS;
     slot1_end = falseWinSlot;
     slot2_end = falseWinSlotOdd;
     slot3_end = random(0,5);
@@ -362,7 +357,7 @@ void rollSlots(){
 void doWinState(){
   //based on win state do sounds, fire, etc.
   switch (winState) {
-    case WINSTATE_NYAN: 
+    case WINSTATE_NYAN: {
       Serial.println("doWinState nyan");
       // Start lights thread, start playing nyan cat, start fire thread, wait til both nyancat and fire are done
 
@@ -373,7 +368,7 @@ void doWinState(){
       playSound("nyan16.wav");
 
       // Do the fire. Might need to swap to clock watching
-      int fireThreadId = threads.add(doFire);
+      int fireThreadId = threads.addThread(doFire);
 
       // Wait for nyancat to finish playing, then kill the lights thread
       while(playWav1.isPlaying() || threads.getState(fireThreadId) == Threads::RUNNING){
@@ -383,7 +378,8 @@ void doWinState(){
       threads.kill(lightThreadId);
       
       break;
-    case WINSTATE_TENTACLE:
+    }
+    case WINSTATE_TENTACLE: {
       Serial.println("doWinState tentacle");
       // Change lights, start scream sound, start tentacle thread, start fire thread, wait til both tentacle and fire are done
 
@@ -394,16 +390,17 @@ void doWinState(){
       playSound("scream16.wav");
   
       // Wave the tentacle
-      int tentacleThreadId = threads.add(doTentacle);
+      int tentacleThreadId = threads.addThread(doTentacle);
       
       //fire: all at once
-      int fireThreadId = threads.add(doFire);
+      int fireThreadId = threads.addThread(doFire);
 
-      while(threads.getState(tentacleThreadId) == Threads::RUNNING || threads.getState(fireThreadId) == Threads::RUNNING)){
+      while(threads.getState(tentacleThreadId) == Threads::RUNNING || threads.getState(fireThreadId) == Threads::RUNNING){
         Serial.println("Waiting for tentacle or fire thread");
       }
         
       break;
+    }
     case WINSTATE_COIN:
       Serial.println("doWinState coin");
       // Change lights, start coin sound + 1up sound, do fire, do coin
@@ -468,14 +465,18 @@ void doWinState(){
       doFire();
       
       break;
-    default: 
+    case WINSTATE_LOSS:
       playSound("loss16.wav");
+      doLights();
+      break;
+    default: 
       break;
   } 
 
   // Min amount of time before running off to resetState(). While sound is playing or some max time has reached or something
   while(playWav1.isPlaying()){
     Serial.println("Waiting for winstate audio to finish!");
+    delay(10);
   }
 }
 
@@ -534,7 +535,6 @@ void doFire(){
   switch (winState) {
     case WINSTATE_NYAN: 
       //1-2-3-4
-//      doNyanFireThread();
       fireSequentialThread(false);
       fireSequentialThread(true);
       break;
@@ -581,12 +581,6 @@ void fireAllThread(){
   digitalWrite(SOL4, LOW);
   threads.delay(250);
 }
-
-// Does sequential fire with thread delay
-//void doNyanFireThread(){
-//  fireSequentialThread(false);
-//  fireSequentialThread(true);
-//}
 
 // Triggers all four solenoids
 void fireAll(){
@@ -711,11 +705,15 @@ void doLights(){
       break;
     case WINSTATE_CHEESY:
       // orange
-      setStripColor(170, 255, 0);
+      setStripColor(255, 36, 0);
       break;
     case WINSTATE_PINCHY:
       // Red
       setStripColor(255, 0, 0);
+      break;
+    case WINSTATE_LOSS:
+      // Dim white
+      setStripColor(25, 25, 25);
       break;
     default:
       // White
@@ -749,19 +747,10 @@ void rainbowCycleThread() {
     }
     
     strip.show();
-    threads.delay(10);
+    j += 10;
 
-    j++;
+    threads.delay(75);
   }
-  
-//  for(j=0; j<256*10; j++) { // 10 cycles of all colors on wheel
-//    for(i=0; i< strip.numPixels(); i++) {
-//      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
-//    }
-//    
-//    strip.show();
-//    threads.delay(10);
-//  }
 }
 
  
@@ -806,7 +795,7 @@ void doTentacle(){
 void doCoin(){
   Serial.println("About to do coin");
   coinServo.write(90); 
-  delay(500);
+  delay(250);
   coinServo.write(0);
 }
 
