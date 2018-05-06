@@ -195,16 +195,6 @@ void setup() {
 void loop() {
   Serial.print("\nPull handle to begin slots!\n");
 
-//TODO: Remove, for debugging to show trish only
-//  if (Serial.available()) {
-//    int inByte = Serial.read();
-//    doCoin();
-//    Serial.flush();
-//  }
-
-
-
-
   while (digitalRead(HANDLE)){
     delay(10);
   }
