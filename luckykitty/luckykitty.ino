@@ -195,6 +195,16 @@ void setup() {
 void loop() {
   Serial.print("\nPull handle to begin slots!\n");
 
+//TODO: Remove, for debugging to show trish only
+//  if (Serial.available()) {
+//    int inByte = Serial.read();
+//    doCoin();
+//    Serial.flush();
+//  }
+
+
+
+
   while (digitalRead(HANDLE)){
     delay(10);
   }
@@ -481,8 +491,8 @@ void resetState(){
   winState = WINSTATE_NONE;
   
   // Reset coin and tentacle servo positions
-  tentacleServo.write(-90);
-  coinServo.write(0);
+  tentacleServo.write(90);
+  coinServo.write(90);
   
   // Stop audio
   playWav1.stop();
@@ -765,31 +775,31 @@ uint32_t Wheel(byte WheelPos) {
 void doTentacle(){
   Serial.println("About to do tentacle");
 
-  tentacleServo.write(90); 
+  tentacleServo.write(0); 
   threads.delay(500);
 
   tentacleServo.write(45); 
   threads.delay(300);
 
-  tentacleServo.write(90); 
+  tentacleServo.write(0); 
   threads.delay(300);
 
   tentacleServo.write(45); 
   threads.delay(300);
 
-  tentacleServo.write(90); 
+  tentacleServo.write(0); 
   threads.delay(500);
   
-  tentacleServo.write(0);
+  tentacleServo.write(90);
 }
 
 
 // Triggers the coin dispenser to dispense a coin
 void doCoin(){
   Serial.println("About to do coin");
-  coinServo.write(90); 
-  delay(250);
-  coinServo.write(0);
+  coinServo.write(10); 
+  delay(200);
+  coinServo.write(90);
 }
 
 // This function opens a Windows Bitmap (BMP) file and
