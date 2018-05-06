@@ -764,23 +764,23 @@ uint32_t Wheel(byte WheelPos) {
 // Makes the tentacle pop out, wiggle around, and go away
 void doTentacle(){
   Serial.println("About to do tentacle");
-  //-90 0 90
+
   tentacleServo.write(90); 
   threads.delay(500);
 
-  tentacleServo.write(0); 
+  tentacleServo.write(45); 
   threads.delay(300);
 
   tentacleServo.write(90); 
   threads.delay(300);
 
-  tentacleServo.write(0); 
+  tentacleServo.write(45); 
   threads.delay(300);
 
   tentacleServo.write(90); 
   threads.delay(500);
   
-  tentacleServo.write(-90);
+  tentacleServo.write(0);
 }
 
 
