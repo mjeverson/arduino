@@ -194,6 +194,11 @@ void setup() {
 
 void loop() {
   Serial.print("\nPull handle to begin slots!\n");
+//
+//  if(Serial.available()){
+//    doCoin();
+//    Serial.read();
+//  }
 
   while (digitalRead(HANDLE)){
     delay(10);
@@ -787,7 +792,7 @@ void doTentacle(){
 // Triggers the coin dispenser to dispense a coin
 void doCoin(){
   Serial.println("About to do coin");
-  coinServo.write(10); 
+  coinServo.write(30); 
   delay(200);
   coinServo.write(90);
 }
