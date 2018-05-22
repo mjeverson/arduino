@@ -2,7 +2,7 @@
   Lucky Kitty Slot Machine
 
   Designed for use with Teensy 3.6
-
+144, 192
 Notes:
   For Speed:
   - Run at 240mhz overclocked for ~500ms per screen, but need to run at ~192MHz for the SD card SPI bus to work properly
@@ -10,13 +10,13 @@ Notes:
   - Or the _t3 lib if we can get it working
   - 565 raw file instead of bmp?
   - Raspberry pi?
-  - Can't loop audio in a thread while rendering without huge slowdown
 
 //todo: optimize image rendering speed
-//todo: occasionally fails to initialize SD card on upload, does resetting it always work?
+//todo: weird colours when running live
+//todo: weird buffer issue causing image offset? possibly related to the above?
 
 //solved
-// second SD card issue is a clock speed problem with the teensy, 24MHz/96MHz/192 works but higher seems to fail
+// second SD card issue is a clock speed problem with the teensy, 24MHz/96MHz/144/192 works but higher seems to fail
 // issue getting the sd card to initialize when just attaching 5V power (was a problem not connecting to ground and power of arduino AND supply)
 // sometimes the handle starts off as on (think this was sd card failing before we got to set input high)
 // sometimes the audio loop thread doesn't quite start (seems to be fixed with updated playsound function)
@@ -194,7 +194,7 @@ void setup() {
 
 void loop() {
   Serial.print("\nPull handle to begin slots!\n");
-//
+
 //  if(Serial.available()){
 //    doCoin();
 //    Serial.read();
@@ -805,7 +805,7 @@ void doCoin(){
 // makes loading a little faster.  20 pixels seems a
 // good balance.
 
-#define BUFFPIXEL 80
+#define BUFFPIXEL 20
 
 void bmpDraw(char *filename, uint8_t x, uint16_t y, Adafruit_HX8357 screen) {
   File     bmpFile;
