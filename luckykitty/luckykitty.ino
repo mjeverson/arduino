@@ -304,7 +304,7 @@ void rollSlots(){
 
 
   // new shorter rolling logic
-  int rollsBeforeStopping = 3;
+  int rollsBeforeStopping = 4;
   int i = 0;
   while(i < rollsBeforeStopping){
     bmpDraw(images[random(0,5)], 0, 0, tft);
