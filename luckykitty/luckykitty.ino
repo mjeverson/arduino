@@ -2,7 +2,7 @@
   Lucky Kitty Slot Machine
 
   Designed for use with Teensy 3.6
-
+144, 192
 Notes:
   For Speed:
   - Run at 240mhz overclocked for ~500ms per screen, but need to run at ~192MHz for the SD card SPI bus to work properly
@@ -10,13 +10,13 @@ Notes:
   - Or the _t3 lib if we can get it working
   - 565 raw file instead of bmp?
   - Raspberry pi?
-  - Can't loop audio in a thread while rendering without huge slowdown
 
 //todo: optimize image rendering speed
-//todo: occasionally fails to initialize SD card on upload, does resetting it always work?
+//todo: weird colours when running live
+//todo: weird buffer issue causing image offset? possibly related to the above?
 
 //solved
-// second SD card issue is a clock speed problem with the teensy, 24MHz/96MHz/192 works but higher seems to fail
+// second SD card issue is a clock speed problem with the teensy, 24MHz/96MHz/144/192 works but higher seems to fail
 // issue getting the sd card to initialize when just attaching 5V power (was a problem not connecting to ground and power of arduino AND supply)
 // sometimes the handle starts off as on (think this was sd card failing before we got to set input high)
 // sometimes the audio loop thread doesn't quite start (seems to be fixed with updated playsound function)
@@ -99,9 +99,9 @@ Adafruit_HX8357 tft3 = Adafruit_HX8357(TFT_CS3, TFT_DC, MOSI1, SCK1, -1, MISO1);
 #define WINSTATE_CHEESY 5
 #define WINSTATE_PINCHY 6
 #define WINSTATE_LOSS 7
-#define NUM_SLOTS 6
+#define WINSTATE_SETH 8
 int winState, slot1_current, slot2_current, slot3_current; 
-char* images[] = {"nyanf.bmp", "tentf.bmp", "coinf.bmp", "firef.bmp", "cheesef.bmp", "pinchyf.bmp"};
+char* images[] = {"nyanf.bmp", "tentf.bmp", "coinf.bmp", "firef.bmp", "cheesef.bmp", "pinchyf.bmp", "sethf.bmp"};
 
 // Onboard Teensy 3.6 SD Slot
 const uint8_t SD_CHIP_SELECT = SS;
@@ -194,6 +194,11 @@ void setup() {
 
 void loop() {
   Serial.print("\nPull handle to begin slots!\n");
+
+//  if(Serial.available()){
+//    doCoin();
+//    Serial.read();
+//  }
 
   while (digitalRead(HANDLE)){
     delay(10);
@@ -297,44 +302,60 @@ void rollSlots(){
     slot3_end = random(0,5);
   }
 
-  // Do the actual rolling slots
-  int index = 0;
-  int slot1_stoppedAt = -1;
-  int slot2_stoppedAt = -1;
-  int minRollsBeforeStopping = 5;
 
-  // while the min number of changes hasn't happened AND the slots aren't in their final slots
-  // only let the first slot move for the first iteration, then add the second for the next two, then start the third
-  // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
-  while(index < minRollsBeforeStopping || slot1_current != slot1_end || slot2_current != slot2_end || slot3_current != slot3_end || index < slot2_stoppedAt + 2) {
-    if (index < minRollsBeforeStopping || slot1_current != slot1_end){
-      slot1_current++;
-      slot1_current = slot1_current > 5 ? 0 : slot1_current;
-      bmpDraw(images[slot1_current], 0, 0, tft);
-    }
-    
-    if (index >= minRollsBeforeStopping && slot1_current == slot1_end && slot1_stoppedAt == -1) {
-      slot1_stoppedAt = index;
-    }
-  
-    if (index >= 1 && (index < minRollsBeforeStopping || slot1_stoppedAt == -1 || (slot1_stoppedAt > -1 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
-      slot2_current++;
-      slot2_current = slot2_current > 5 ? 0 : slot2_current;
-      bmpDraw(images[slot2_current], 0, 0, tft2);
-    } 
-    
-    if (index >= minRollsBeforeStopping && slot1_stoppedAt > -1 && index >= slot1_stoppedAt + 2 && slot2_current == slot2_end && slot2_stoppedAt == -1) {
-      slot2_stoppedAt = index;
-    }
-    
-    if (index >= 3 && (index < minRollsBeforeStopping || slot2_stoppedAt == -1  || (slot2_stoppedAt > -1 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
-      slot3_current++;
-      slot3_current = slot3_current > 5 ? 0 : slot3_current;
-      bmpDraw(images[slot3_current], 0, 0, tft3);
-    }
-  
-    index++;
+  // new shorter rolling logic
+  int rollsBeforeStopping = 4;
+  int i = 0;
+  while(i < rollsBeforeStopping){
+    bmpDraw(images[random(0,5)], 0, 0, tft);
+    bmpDraw(images[random(0,5)], 0, 0, tft2);
+    bmpDraw(images[random(0,5)], 0, 0, tft3);
+    i++;
   }
+
+  bmpDraw(images[slot1_end], 0, 0, tft);
+  bmpDraw(images[slot2_end], 0, 0, tft2);
+  bmpDraw(images[slot3_end], 0, 0, tft3);
+
+
+//  // Do the actual rolling slots
+//  int index = 0;
+//  int slot1_stoppedAt = -1;
+//  int slot2_stoppedAt = -1;
+//  int minRollsBeforeStopping = 5;
+//
+//  // while the min number of changes hasn't happened AND the slots aren't in their final slots
+//  // only let the first slot move for the first iteration, then add the second for the next two, then start the third
+//  // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
+//  while(index < minRollsBeforeStopping || slot1_current != slot1_end || slot2_current != slot2_end || slot3_current != slot3_end || index < slot2_stoppedAt + 2) {
+//    if (index < minRollsBeforeStopping || slot1_current != slot1_end){
+//      slot1_current++;
+//      slot1_current = slot1_current > 5 ? 0 : slot1_current;
+//      bmpDraw(images[slot1_current], 0, 0, tft);
+//    }
+//    
+//    if (index >= minRollsBeforeStopping && slot1_current == slot1_end && slot1_stoppedAt == -1) {
+//      slot1_stoppedAt = index;
+//    }
+//  
+//    if (index >= 1 && (index < minRollsBeforeStopping || slot1_stoppedAt == -1 || (slot1_stoppedAt > -1 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
+//      slot2_current++;
+//      slot2_current = slot2_current > 5 ? 0 : slot2_current;
+//      bmpDraw(images[slot2_current], 0, 0, tft2);
+//    } 
+//    
+//    if (index >= minRollsBeforeStopping && slot1_stoppedAt > -1 && index >= slot1_stoppedAt + 2 && slot2_current == slot2_end && slot2_stoppedAt == -1) {
+//      slot2_stoppedAt = index;
+//    }
+//    
+//    if (index >= 3 && (index < minRollsBeforeStopping || slot2_stoppedAt == -1  || (slot2_stoppedAt > -1 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
+//      slot3_current++;
+//      slot3_current = slot3_current > 5 ? 0 : slot3_current;
+//      bmpDraw(images[slot3_current], 0, 0, tft3);
+//    }
+//  
+//    index++;
+//  }
 
   threads.kill(playReelLoopThreadID);
 
@@ -481,8 +502,8 @@ void resetState(){
   winState = WINSTATE_NONE;
   
   // Reset coin and tentacle servo positions
-  tentacleServo.write(-90);
-  coinServo.write(0);
+  tentacleServo.write(90);
+  coinServo.write(90);
   
   // Stop audio
   playWav1.stop();
@@ -764,32 +785,32 @@ uint32_t Wheel(byte WheelPos) {
 // Makes the tentacle pop out, wiggle around, and go away
 void doTentacle(){
   Serial.println("About to do tentacle");
-  //-90 0 90
-  tentacleServo.write(90); 
+
+  tentacleServo.write(0); 
   threads.delay(500);
 
-  tentacleServo.write(0); 
-  threads.delay(300);
-
-  tentacleServo.write(90); 
+  tentacleServo.write(45); 
   threads.delay(300);
 
   tentacleServo.write(0); 
   threads.delay(300);
 
-  tentacleServo.write(90); 
+  tentacleServo.write(45); 
+  threads.delay(300);
+
+  tentacleServo.write(0); 
   threads.delay(500);
   
-  tentacleServo.write(-90);
+  tentacleServo.write(90);
 }
 
 
 // Triggers the coin dispenser to dispense a coin
 void doCoin(){
   Serial.println("About to do coin");
-  coinServo.write(90); 
-  delay(250);
-  coinServo.write(0);
+  coinServo.write(30); 
+  delay(200);
+  coinServo.write(90);
 }
 
 // This function opens a Windows Bitmap (BMP) file and
@@ -800,7 +821,7 @@ void doCoin(){
 // makes loading a little faster.  20 pixels seems a
 // good balance.
 
-#define BUFFPIXEL 80
+#define BUFFPIXEL 20
 
 void bmpDraw(char *filename, uint8_t x, uint16_t y, Adafruit_HX8357 screen) {
   File     bmpFile;
