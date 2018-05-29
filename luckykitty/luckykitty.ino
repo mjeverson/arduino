@@ -182,9 +182,9 @@ void setup() {
   resetState();
 
   // Initialize slot state.
-  slot1_current = random(0,5);
-  slot2_current = random(0,5);
-  slot3_current = random(0,5);
+  slot1_current = random(0,6);
+  slot2_current = random(0,6);
+  slot3_current = random(0,6);
   bmpDraw(images[slot1_current], 0, 0, tft);
   bmpDraw(images[slot2_current], 0, 0, tft2);
   bmpDraw(images[slot3_current], 0, 0, tft3);
@@ -249,8 +249,8 @@ void rollSlots(){
   int falseWinSlot, falseWinSlotOdd;
     
   do {
-    falseWinSlot = random(0,5);
-    falseWinSlotOdd = random(0,5);
+    falseWinSlot = random(0,6);
+    falseWinSlotOdd = random(0,6);
   } while (falseWinSlot == falseWinSlotOdd);
   
   int slot1_end, slot2_end, slot3_end;
@@ -299,7 +299,7 @@ void rollSlots(){
     winState = WINSTATE_LOSS;
     slot1_end = falseWinSlot;
     slot2_end = falseWinSlotOdd;
-    slot3_end = random(0,5);
+    slot3_end = random(0,6);
   }
 
 
@@ -307,9 +307,9 @@ void rollSlots(){
   int rollsBeforeStopping = 4;
   int i = 0;
   while(i < rollsBeforeStopping){
-    bmpDraw(images[random(0,5)], 0, 0, tft);
-    bmpDraw(images[random(0,5)], 0, 0, tft2);
-    bmpDraw(images[random(0,5)], 0, 0, tft3);
+    bmpDraw(images[random(0,6)], 0, 0, tft);
+    bmpDraw(images[random(0,6)], 0, 0, tft2);
+    bmpDraw(images[random(0,6)], 0, 0, tft3);
     i++;
   }
 
