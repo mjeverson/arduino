@@ -582,8 +582,7 @@ void doFire(){
       fireAll();
       break;
     case WINSTATE_FIRE:
-      // fire all 4 x3 
-      
+      //fire all three at "highway to hell"
       //1s-5s-9s-13s for "highway to hell"
       //each fireAll takes about 2250ms
       
