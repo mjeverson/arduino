@@ -482,6 +482,21 @@ void doWinState(){
       doFire();
       
       break;
+    case WINSTATE_SETH:
+      Serial.println("doWinState Seth");
+      //todo: add seth win
+
+      //todo: update LED colours for seth winstate
+      doLights();
+
+      //todo: playSound("seth16.wav");
+
+      //todo: doFire like highway to hell kinda thing
+
+      //todo: doCoin 5 times
+      for(int i = 0; i < 5; i++){
+        doCoin();
+      }
     case WINSTATE_LOSS:
       playSound("loss16.wav");
       doLights();
@@ -577,6 +592,12 @@ void doFire(){
     case WINSTATE_PINCHY:
       // fire all 4
       fireAll();
+      break;
+    case WINSTATE_SETH:
+      //TODO: add seth fire
+      for (int i = 0; i< 3; i++){
+          fireAll();
+      }
       break;
     default:
       // No fire
@@ -728,6 +749,8 @@ void doLights(){
       // Red
       setStripColor(255, 0, 0);
       break;
+    case WINSTATE_SETH:
+      // todo: need lights for seth winstate
     case WINSTATE_LOSS:
       // Dim white
       setStripColor(25, 25, 25);
