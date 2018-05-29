@@ -584,6 +584,23 @@ void doFire(){
       for (int i = 0; i< 3; i++){
           fireAll();
       }
+
+      delay(2500);
+
+      for (int i = 0; i< 3; i++){
+          fireAll();
+      }
+
+      delay(2500);
+
+      for (int i = 0; i< 3; i++){
+          fireAll();
+      }
+
+      delay(2000);
+
+      fireAll();
+      
       break;
     case WINSTATE_CHEESY:
       // No fire
