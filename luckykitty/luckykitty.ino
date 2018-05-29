@@ -243,7 +243,7 @@ void rollSlots(){
   int playReelLoopThreadID = threads.addThread(playReelLoopThread);
 
   // Calculate win state
-  int winRoll = random(1,20); 
+  int winRoll = random(1,100); 
   
   // Calcuate partial fail slot displays
   int falseWinSlot, falseWinSlotOdd;
@@ -255,53 +255,56 @@ void rollSlots(){
   
   int slot1_end, slot2_end, slot3_end;
   
-  if (winRoll <= 2) {
-    // nyancat
+  if (winRoll <= 10) {
+    // nyancat, 10% chance
     winState = WINSTATE_NYAN;
     slot1_end = slot2_end = slot3_end = 0;
-  } else if (winRoll <= 4){
-    // tentacle
+  } else if (winRoll <= 20){
+    // tentacle, 10% chance
     winState = WINSTATE_TENTACLE;
     slot1_end = slot2_end = slot3_end = 1;
-  } else if (winRoll == 5) {
-    // coin
+  } else if (winRoll <= 25) {
+    // coin, 5% chance
     winState = WINSTATE_COIN;
     slot1_end = slot2_end = slot3_end = 2;
-  } else if (winRoll <= 7) {
-    // fire
+  } else if (winRoll <= 35) {
+    // fire, 10% chance
     winState = WINSTATE_FIRE;
     slot1_end = slot2_end = slot3_end = 3;
-  } else if (winRoll <= 9) {
-    // cheesy poofs
+  } else if (winRoll <= 45) {
+    // cheesy poofs, 10% chance
     winState = WINSTATE_CHEESY;
     slot1_end = slot2_end = slot3_end = 4;
-  } else if (winRoll == 10){
-    // pinchy
+  } else if (winRoll <= 50){
+    // pinchy, 5% chance
     winState = WINSTATE_PINCHY;
     slot1_end = slot2_end = slot3_end = 5;
-  } else if (winRoll <= 12) {
-    // partial fail
+  } else if (winRoll <= 52) {
+    //todo: seth win, 2% chance
+    winState = WINSTATE_SETH;
+    slot1_end = slot2_end = slot3_end = 6;
+  } else if (winRoll <= 62) {
+    // partial fail, 10% chance
     winState = WINSTATE_LOSS;
     slot1_end = slot2_end = falseWinSlot;
     slot3_end = falseWinSlotOdd;
-  } else if (winRoll <= 14) {
-    // Partial fail
+  } else if (winRoll <= 72) {
+    // Partial fail, 10% chance
     winState = WINSTATE_LOSS;
     slot1_end = slot3_end = falseWinSlot;
     slot2_end = falseWinSlotOdd;
-  }else if (winRoll <= 16) {
-    // Partial fail
+  }else if (winRoll <= 82) {
+    // Partial fail, 10% chance
     winState = WINSTATE_LOSS;
     slot2_end = slot3_end = falseWinSlot;
     slot1_end = falseWinSlotOdd;
   } else {
-    // Total fail
+    // Total fail, 18% chance
     winState = WINSTATE_LOSS;
     slot1_end = falseWinSlot;
     slot2_end = falseWinSlotOdd;
     slot3_end = random(0,6);
   }
-
 
   // new shorter rolling logic
   int rollsBeforeStopping = 4;
