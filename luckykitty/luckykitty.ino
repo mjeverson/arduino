@@ -435,11 +435,11 @@ void doWinState(){
       
       playSound("1up16.wav");
 
-      // fire: 1-3-2-4-all
-      doFire();
-
       // Dispense a coin
       doCoin();
+
+      // fire: 1-3-2-4-all
+      doFire();
       
       break;
     case WINSTATE_FIRE:
