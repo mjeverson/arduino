@@ -408,13 +408,13 @@ void doWinState(){
   
       // Wave the tentacle
       int tentacleThreadId = threads.addThread(doTentacle);
-      
-      //fire: all at once
-      int fireThreadId = threads.addThread(doFire);
 
-      while(threads.getState(tentacleThreadId) == Threads::RUNNING || threads.getState(fireThreadId) == Threads::RUNNING){
+      while(threads.getState(tentacleThreadId) == Threads::RUNNING) {
         Serial.println("Waiting for tentacle or fire thread");
       }
+
+      //fire: all at once
+      doFire();
         
       break;
     }
