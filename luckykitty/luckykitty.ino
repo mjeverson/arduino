@@ -491,12 +491,14 @@ void doWinState(){
 
       //todo: playSound("seth16.wav");
 
-      //todo: doFire like highway to hell kinda thing
-
       //todo: doCoin 5 times
       for(int i = 0; i < 5; i++){
         doCoin();
       }
+
+      //todo: doFire like highway to hell kinda thing
+      doFire();
+      
     case WINSTATE_LOSS:
       playSound("loss16.wav");
       doLights();
