@@ -309,10 +309,32 @@ void rollSlots(){
   // new shorter rolling logic
   int rollsBeforeStopping = 4;
   int i = 0;
+  
   while(i < rollsBeforeStopping){
-    bmpDraw(images[random(0,6)], 0, 0, tft);
-    bmpDraw(images[random(0,6)], 0, 0, tft2);
-    bmpDraw(images[random(0,6)], 0, 0, tft3);
+    int slot1_new = slot1_current;
+    int slot2_new = slot2_current;
+    int slot3_new = slot3_current;
+    
+    while (slot1_new == slot1_current){
+      slot1_new = random(0,6);
+    }
+    
+    while (slot2_new == slot2_current){
+      slot2_new = random(0,6);
+    }
+
+    while (slot3_new == slot3_current){
+      slot3_new = random(0,6);
+    }
+
+    bmpDraw(images[slot1_new], 0, 0, tft);
+    bmpDraw(images[slot2_new], 0, 0, tft2);
+    bmpDraw(images[slot3_new], 0, 0, tft3);
+
+    slot1_current = slot1_new;
+    slot2_current = slot2_new;
+    slot3_current = slot3_new;
+
     i++;
   }
 
@@ -320,6 +342,9 @@ void rollSlots(){
   bmpDraw(images[slot2_end], 0, 0, tft2);
   bmpDraw(images[slot3_end], 0, 0, tft3);
 
+  slot1_current = slot1_end;
+  slot2_current = slot2_end;
+  slot3_current = slot3_end;
 
 //  // Do the actual rolling slots
 //  int index = 0;
