@@ -309,7 +309,8 @@ void rollSlots(){
   // new shorter rolling logic
   int rollsBeforeStopping = 4;
   int i = 0;
-  
+
+  // Want to make sure we don't get a slot rolling the same thing twice, looks like it doesn't update
   while(i < rollsBeforeStopping){
     int slot1_new = slot1_current;
     int slot2_new = slot2_current;
