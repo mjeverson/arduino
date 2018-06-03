@@ -453,16 +453,21 @@ void doWinState(){
 
       //TODO: sound: mario 1up/coin
       playSound("coin16.wav");
-      delay(10);
       
+      // Dispense a coin
+      doCoin();
+
+      delay(10);
       while(playWav1.isPlaying()){
         delay(10);
       }
-      
-      playSound("1up16.wav");
 
-      // Dispense a coin
-      doCoin();
+      playSound("1up16.wav");
+      
+      delay(10);
+      while(playWav1.isPlaying()){
+        delay(10);
+      }
 
       // fire: 1-3-2-4-all
       doFire();
@@ -511,20 +516,32 @@ void doWinState(){
     case WINSTATE_SETH:
       Serial.println("doWinState Seth");
       //todo: add seth win
+      playSound("seth16.wav");
 
-      //todo: update LED colours for seth winstate
-      doLights();
+      delay(1500);
 
-      //todo: playSound("seth16.wav");
+      //todo: threaded rainbow colours
+      int lightThreadId = threads.addThread(doLights);
 
-      //todo: doCoin 5 times
-      for(int i = 0; i < 5; i++){
-        doCoin();
+      //todo: threaded fire
+      int fireThreadId = threads.addThread(doFire);
+
+      // Wait for nyancat to finish playing, then kill the lights thread
+      while(playWav1.isPlaying()){
+        Serial.println("Waiting for nyancat to finish playing or fire to finish");
       }
 
-      //todo: doFire like highway to hell kinda thing
-      doFire();
-      
+      threads.kill(lightThreadId);
+
+      for(int i = 0; i < 5; i++){
+        playSound("coin16.wav");
+        doCoin();
+        delay(200);
+      }
+
+      playSound("1up16.wav");
+
+      break;
     case WINSTATE_LOSS:
       playSound("loss16.wav");
       doLights();
@@ -642,10 +659,9 @@ void doFire(){
       fireAll();
       break;
     case WINSTATE_SETH:
-      //TODO: add seth fire
-      for (int i = 0; i< 3; i++){
-          fireAll();
-      }
+      //1-2-3-4
+      fireSequentialThread(false);
+      fireSequentialThread(true);
       break;
     default:
       // No fire
@@ -798,7 +814,8 @@ void doLights(){
       setStripColor(255, 0, 0);
       break;
     case WINSTATE_SETH:
-      // todo: need lights for seth winstate
+      // nyan rainbow colours
+      rainbowCycleThread();
     case WINSTATE_LOSS:
       // Dim white
       setStripColor(25, 25, 25);
