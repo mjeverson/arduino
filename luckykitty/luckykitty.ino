@@ -347,45 +347,6 @@ void rollSlots(){
   slot2_current = slot2_end;
   slot3_current = slot3_end;
 
-//  // Do the actual rolling slots
-//  int index = 0;
-//  int slot1_stoppedAt = -1;
-//  int slot2_stoppedAt = -1;
-//  int minRollsBeforeStopping = 5;
-//
-//  // while the min number of changes hasn't happened AND the slots aren't in their final slots
-//  // only let the first slot move for the first iteration, then add the second for the next two, then start the third
-//  // After a min number of changes, let the first one go til it reaches its final state. two iterations later let the second go til it hits it. then two more later the third.
-//  while(index < minRollsBeforeStopping || slot1_current != slot1_end || slot2_current != slot2_end || slot3_current != slot3_end || index < slot2_stoppedAt + 2) {
-//    if (index < minRollsBeforeStopping || slot1_current != slot1_end){
-//      slot1_current++;
-//      slot1_current = slot1_current > 5 ? 0 : slot1_current;
-//      bmpDraw(images[slot1_current], 0, 0, tft);
-//    }
-//    
-//    if (index >= minRollsBeforeStopping && slot1_current == slot1_end && slot1_stoppedAt == -1) {
-//      slot1_stoppedAt = index;
-//    }
-//  
-//    if (index >= 1 && (index < minRollsBeforeStopping || slot1_stoppedAt == -1 || (slot1_stoppedAt > -1 && index < slot1_stoppedAt + 2) || slot2_current != slot2_end)){
-//      slot2_current++;
-//      slot2_current = slot2_current > 5 ? 0 : slot2_current;
-//      bmpDraw(images[slot2_current], 0, 0, tft2);
-//    } 
-//    
-//    if (index >= minRollsBeforeStopping && slot1_stoppedAt > -1 && index >= slot1_stoppedAt + 2 && slot2_current == slot2_end && slot2_stoppedAt == -1) {
-//      slot2_stoppedAt = index;
-//    }
-//    
-//    if (index >= 3 && (index < minRollsBeforeStopping || slot2_stoppedAt == -1  || (slot2_stoppedAt > -1 && index < slot2_stoppedAt + 2) || slot3_current != slot3_end)){
-//      slot3_current++;
-//      slot3_current = slot3_current > 5 ? 0 : slot3_current;
-//      bmpDraw(images[slot3_current], 0, 0, tft3);
-//    }
-//  
-//    index++;
-//  }
-
   threads.kill(playReelLoopThreadID);
 
   playSound("rstop16.wav");
@@ -513,7 +474,7 @@ void doWinState(){
       doFire();
       
       break;
-    case WINSTATE_SETH:
+    case WINSTATE_SETH: {
       Serial.println("doWinState Seth");
       //todo: add seth win
       playSound("seth16.wav");
@@ -542,6 +503,7 @@ void doWinState(){
       playSound("1up16.wav");
 
       break;
+    }
     case WINSTATE_LOSS:
       playSound("loss16.wav");
       doLights();
