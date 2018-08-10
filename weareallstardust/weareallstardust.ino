@@ -1,8 +1,10 @@
+#include <Adafruit_NeoPixel.h>
 #include <HX711.h>
 #include <Thread.h>
+//todo: arduinothreads https://github.com/ivanseidel/ArduinoThread
 #include <SparkFun_TB6612.h>
+//todo: motor waklthrough https://learn.sparkfun.com/tutorials/tb6612fng-hookup-guide?_ga=2.224845469.683491163.1533922223-1605071062.1518369019
 
-//todo: will need to add new vars for the neopixel rings
 // Number of pixels in the string
 #define ALTAR_READY_PIXELS 180 
 #define LED_RING_PIXELS 24
@@ -11,9 +13,21 @@
 //todo: dont need anymore only one set of leds run this way
 //todo: will need pin #s for the neopixel rings though
 #define ALTAR_READY_PIXEL_BIT 2
-#define LED_RING_A 7
-#define LED_RING_B 8
-#define LED_RING_C 9         
+#define LED_RING_A 10
+#define LED_RING_B 11
+#define LED_RING_C 12
+
+// Parameter 1 = number of pixels in strip
+// Parameter 2 = Arduino pin number (most are valid)
+// Parameter 3 = pixel type flags, add together as needed:
+//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
+//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
+//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
+//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
+Adafruit_NeoPixel strip_a = Adafruit_NeoPixel(LED_RING_PIXELS, LED_RING_A, NEO_GRB + NEO_KHZ800);        
+Adafruit_NeoPixel strip_b = Adafruit_NeoPixel(LED_RING_PIXELS, LED_RING_B, NEO_GRB + NEO_KHZ800);        
+Adafruit_NeoPixel strip_c = Adafruit_NeoPixel(LED_RING_PIXELS, LED_RING_C, NEO_GRB + NEO_KHZ800);        
  
 #define FADE_SPEED 5
 #define PULSE_SPEED 8
@@ -27,8 +41,19 @@ bool globalFadeIn;
 #define DOUT  A1
 
 //Sets up the scale. This value is obtained using the SparkFun_HX711_Calibration sketch.
+//todo: do we need to recalibrate?
 #define calibration_factor -9890.0
 HX711 scale(DOUT, CLK);
+
+//todo: motor values
+// Pins for all inputs, keep in mind the PWM defines must be on PWM pins
+#define AIN1 2
+//#define BIN1 7
+#define AIN2 4
+//#define BIN2 8
+#define PWMA 5
+//#define PWMB 6
+#define STBY 9
 
 void setup() {
   Serial.begin(9600);
