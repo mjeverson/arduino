@@ -59,6 +59,7 @@ HX711 scale(DOUT, CLK);
 // line up with function names like forward.  Value can be 1 or -1
 const int offsetA = 1;
 Motor motor1 = Motor(AIN1, AIN2, PWMA, offsetA, STBY);
+Motor motor2 = Motor(7, 8, 6, 1, STBY);
 
 void setup() {
   Serial.begin(9600);
@@ -83,10 +84,11 @@ void loop() {
   //and optional duration.  A negative speed will cause it to go
   //backwards.  Speed can be from -255 to 255.  Also use of the 
   //brake function which takes no arguements.
-  motor1.drive(255,1000);
-  motor1.drive(-255,1000);
-  motor1.brake();
-  delay(1000);
+  forward(motor1, motor2, -150);
+  delay(2000);
+  //todo: break/back/positive speed are all weird, also need a second motor declared for some reason? Odd. Look into this, but this works for now.
+  forward(motor1, motor2, 150);
+  delay(2000);
 
  
   //while we're looping. if someone's on the scale, do the theater chase. if someone's not on the scale, do the ready pulse.
