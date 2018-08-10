@@ -109,7 +109,7 @@ void loop() {
 // Sets the altar lights in a pattern that indicates it's listening, 
 void setAltarListenLighting(){
   // Theatre lighting around the outside three times
-  theaterChase(readyColors[0], readyColors[1], readyColors[2], 50);
+  theaterChaseThread(readyColors[0], readyColors[1], readyColors[2], 50);
 }
 
 void doAltarReadyPulseThread(){
