@@ -1,37 +1,26 @@
 #include <HX711.h>
-#include <Tlc5940.h>
+#include <Thread.h>
 
-//http://alex.kathack.com/codes/tlc5940arduino/html_r011/group__CoreFunctions.html
-//4095 is the max value for a channel on a tlc5940
-#define TLC_ON 4095
-#define TLC_OFF 0
-
-// Number of pixels in the string (180 altar ready, 150 altar safety, 300 table safety)
+//todo: will need to add new vars for the neopixel rings
+// Number of pixels in the string
 #define ALTAR_READY_PIXELS 180 
-#define ALTAR_SAFETY_PIXELS 150  
-#define TABLE_SAFETY_PIXELS 300  
 
 // Bit of the pins the pixels are connected to (see LED API below)
-#define ALTAR_READY_PIXEL_BIT 2      
-#define ALTAR_SAFETY_PIXEL_BIT 3    
-#define TABLE_SAFETY_PIXEL_BIT 4   
+//todo: dont need anymore only one set of leds run this way
+//todo: will need pin #s for the neopixel rings though
+#define ALTAR_READY_PIXEL_BIT 2         
  
 #define FADE_SPEED 5
 #define PULSE_SPEED 8
-float safetyColors[3] = {127, 0, 0};
+//float safetyColors[3] = {127, 0, 0};
 float readyColors[3] = {127, 127, 127};
 float globalFadeLevel = 255;
 bool globalFadeIn;
 
 // Pins the scale is using. Note, we're not actually using CLK for the clock pin, which is odd. Does it only work because of the crystal on the dmxfire?
+//todo: double check these pins since we're using a mega now
 #define CLK  A0
 #define DOUT  A1
-
-// Pins the buttons are connected to
-#define GO_SWITCH 2
-#define SPELL_SWITCH 4
-#define GO_BUTTON 7
-#define SPELL_BUTTON 8
 
 //Sets up the scale. This value is obtained using the SparkFun_HX711_Calibration sketch.
 #define calibration_factor -9890.0
@@ -40,26 +29,13 @@ HX711 scale(DOUT, CLK);
 void setup() {
   Serial.begin(9600);
 
-//  pinMode(GO_BUTTON, INPUT_PULLUP);      
-//  pinMode(SPELL_BUTTON, INPUT_PULLUP); 
-//  pinMode(GO_SWITCH, OUTPUT);  
-//  pinMode(SPELL_SWITCH, OUTPUT);  
-//  
-//  digitalWrite(GO_SWITCH, HIGH);
-//  digitalWrite(SPELL_SWITCH, HIGH);
-
-  Tlc.init();
-//  flameOff();
-
   scale.set_scale(calibration_factor); 
   scale.tare();  
 
-  randomSeed(analogRead(0));
-
   ledsetup();  
-  fadeLightingIn();
 }
 
+// track the thread IDs for the lighting modes
 int pulseThreadId;
 int theatreThreadId;
 
@@ -68,64 +44,21 @@ void loop() {
   Serial.print(scale.get_units());
   Serial.println();
 
-  theaterChaseThread(readyColors[0], readyColors[1], readyColors[2], 50, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS, 5);
-
+ 
   //while we're looping. if someone's on the scale, do the theater chase. if someone's not on the scale, do the ready pulse.
   if(scale.get_units() > 50){
     //todo: kill pulsing thread if it's running
     //todo: start a thread that does theatre chase if it's not already running
     //todo: start a thread that does motors if it's not already running
     //todo: brighten overhead lights
+    //theaterChaseThread(readyColors[0], readyColors[1], readyColors[2], 50, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS, 5);
   } else {
     //todo: kill theatre chase thread if it's running 
     //todo: start a thread for regular pulsing if it's not already running (setAltarListenLighting())
     //todo: kill "motors" thread
     //todo: darken overhead lights
+    //doAltarReadyPulse();  
   }
- 
-  // Button reads inverted because we're using the internal pullup resistor
-  if (!digitalRead(GO_BUTTON)){
-    // Go time! Do some nice LED prep stuff to show the altar is reading/waiting
-    
-    
-    delay(1000);
-    
-    // Take a scale reading and trigger some fire and lights
-    evaluateOffering();
-
-    // Fade all lights out, then fade back in
-    fadeLightingOutThenIn();
-  } else if (!digitalRead(SPELL_BUTTON)) {
-    // Invoke the great old ones
-    fadeStrandIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
-    
-    castSpell();
-    
-    delay(1000);
-    
-    fadeStrandOutThenIn(readyColors, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
-  } else {
-    // Pulsate the white light on the altar, track with a global factor each loop and reset when you do anything    
-    doAltarReadyPulse();
-  }
-
-  // Always make sure fire is off unless we're actively doing something
-  flameOff();
-}
-
-// Make fire and lights happen based on the scale reading!
-void evaluateOffering() {  
-  // Add in an element of random chance, but should always be the best when over a certain threshold
-//  long willOfTheCat = random(101);
-
-  //TODO: Probably want to reduce the thresholds, still do >100 or so for max effort, but give everything a better probability. Average offering probably won't be very heavy and we want moar fire.
-  // Evaluate the weight thresholds and response patterns
-  if (scale.get_units() > 50{
-    
-  }
-
-  // Flame off!
-  flameOff(); 
 }
 
 //TODO: Might want to do this in a thread while someone is standing on the scale
@@ -193,12 +126,11 @@ void fadeStrandOutThenIn(float colors[], int strand, int num_pixels) {
   fadeStrandIn(colors, strand, num_pixels);
 }
 
+//TODO: probably need to put this in threads with while()
 void fadeLightingOut() {  
   for (float b = 255; b > 0; b -= FADE_SPEED) {
     float factor = b / 255;
     showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
-//    showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, ALTAR_SAFETY_PIXEL_BIT, ALTAR_SAFETY_PIXELS);
-//    showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, TABLE_SAFETY_PIXEL_BIT, TABLE_SAFETY_PIXELS);
   }
 }
 
@@ -206,8 +138,6 @@ void fadeLightingIn() {
   for (float b = 0; b < 255; b += FADE_SPEED) {
     float factor = b / 255;
     showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
-//    showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, ALTAR_SAFETY_PIXEL_BIT, ALTAR_SAFETY_PIXELS);
-//    showColor(safetyColors[0] * factor, safetyColors[1] * factor, safetyColors[2] * factor, TABLE_SAFETY_PIXEL_BIT, TABLE_SAFETY_PIXELS);
   }
 }
 
@@ -312,79 +242,6 @@ inline void sendAltarReadyBit(bool bitVal) {
   // This has thenice side effect of avoid glitches on very long strings becuase 
 }  
 
-//TODO: There has to be a way to get rid of these guys.
-inline void sendAltarSafetyBit(bool bitVal) {
-  if (bitVal) {
-    asm volatile (
-      "sbi %[port], %[bit] \n\t"        // Set the output bit
-      ".rept %[onCycles] \n\t"          // Execute NOPs to delay exactly the specified number of cycles
-      "nop \n\t"
-      ".endr \n\t"
-      "cbi %[port], %[bit] \n\t"        // Clear the output bit
-      ".rept %[offCycles] \n\t"         // Execute NOPs to delay exactly the specified number of cycles
-      "nop \n\t"
-      ".endr \n\t"
-      ::
-      [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
-      [bit]   "I" (ALTAR_SAFETY_PIXEL_BIT),
-      [onCycles]  "I" (NS_TO_CYCLES(T1H) - 2),    // 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
-      [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)   // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
-    );                            
-  } else {          
-    asm volatile (
-      "sbi %[port], %[bit] \n\t"      // Set the output bit
-      ".rept %[onCycles] \n\t"        // Now timing actually matters. The 0-bit must be long enough to be detected but not too long or it will be a 1-bit
-      "nop \n\t"                      // Execute NOPs to delay exactly the specified number of cycles
-      ".endr \n\t"
-      "cbi %[port], %[bit] \n\t"      // Clear the output bit
-      ".rept %[offCycles] \n\t"       // Execute NOPs to delay exactly the specified number of cycles
-      "nop \n\t"
-      ".endr \n\t"
-      ::
-      [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
-      [bit]   "I" (ALTAR_SAFETY_PIXEL_BIT),
-      [onCycles]  "I" (NS_TO_CYCLES(T0H) - 2),
-      [offCycles] "I" (NS_TO_CYCLES(T0L) - 2)
-    );   
-  }
-}  
-
-inline void sendTableSafetyBit(bool bitVal) {
-  if (bitVal) {
-    asm volatile (
-      "sbi %[port], %[bit] \n\t"        // Set the output bit
-      ".rept %[onCycles] \n\t"          // Execute NOPs to delay exactly the specified number of cycles
-      "nop \n\t"
-      ".endr \n\t"
-      "cbi %[port], %[bit] \n\t"        // Clear the output bit
-      ".rept %[offCycles] \n\t"         // Execute NOPs to delay exactly the specified number of cycles
-      "nop \n\t"
-      ".endr \n\t"
-      ::
-      [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
-      [bit]   "I" (TABLE_SAFETY_PIXEL_BIT),
-      [onCycles]  "I" (NS_TO_CYCLES(T1H) - 2),    // 1-bit width less overhead  for the actual bit setting, note that this delay could be longer and everything would still work
-      [offCycles]   "I" (NS_TO_CYCLES(T1L) - 2)   // Minimum interbit delay. Note that we probably don't need this at all since the loop overhead will be enough, but here for correctness
-    );                            
-  } else {          
-    asm volatile (
-      "sbi %[port], %[bit] \n\t"      // Set the output bit
-      ".rept %[onCycles] \n\t"        // Now timing actually matters. The 0-bit must be long enough to be detected but not too long or it will be a 1-bit
-      "nop \n\t"                      // Execute NOPs to delay exactly the specified number of cycles
-      ".endr \n\t"
-      "cbi %[port], %[bit] \n\t"      // Clear the output bit
-      ".rept %[offCycles] \n\t"       // Execute NOPs to delay exactly the specified number of cycles
-      "nop \n\t"
-      ".endr \n\t"
-      ::
-      [port]    "I" (_SFR_IO_ADDR(PIXEL_PORT)),
-      [bit]   "I" (TABLE_SAFETY_PIXEL_BIT),
-      [onCycles]  "I" (NS_TO_CYCLES(T0H) - 2),
-      [offCycles] "I" (NS_TO_CYCLES(T0L) - 2)
-    );   
-  }
-}  
-
 inline void sendByte( unsigned char byte, int strand ) {
     //TODO: There has to be a better way than having a different function for each pixel_bit
     //TODO: Get a weird "impossible constraint in 'asm'" error 
@@ -392,10 +249,6 @@ inline void sendByte( unsigned char byte, int strand ) {
       if (strand == ALTAR_READY_PIXEL_BIT){
         // If this works, why doesn't parameterizing it?
         sendAltarReadyBit(bitRead(byte, 7));
-      } else if (strand == ALTAR_SAFETY_PIXEL_BIT){
-        sendAltarSafetyBit(bitRead(byte, 7));
-      } else if (strand == TABLE_SAFETY_PIXEL_BIT){ 
-        sendTableSafetyBit(bitRead(byte, 7));
       } 
 
       // Neopixel wants bit in highest-to-lowest order, so send highest bit (bit #7 in an 8-bit byte since they start at 0)                                                                                 
@@ -416,8 +269,6 @@ void ledsetup() {
   // Set the specified pin up as digital out
   // https://www.arduino.cc/en/Reference/bitSet
   bitSet(PIXEL_DDR, ALTAR_READY_PIXEL_BIT);
-//  bitSet(PIXEL_DDR, ALTAR_SAFETY_PIXEL_BIT);
-//  bitSet(PIXEL_DDR, TABLE_SAFETY_PIXEL_BIT);
 }
 
 inline void sendPixel(unsigned char r, unsigned char g, unsigned char b, int strand)  {  
