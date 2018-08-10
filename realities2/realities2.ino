@@ -10,8 +10,8 @@ int greenPin = 11;
 void setup()
 {
   pinMode(redPin, OUTPUT);
-//  pinMode(greenPin, OUTPUT);
-//  pinMode(bluePin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  pinMode(bluePin, OUTPUT);
 }
  
 void loop()
@@ -33,7 +33,7 @@ void loop()
  
 void setColor(int red, int green, int blue)
 {
-  analogWrite(redPin, red);
+  digitalWrite(redPin, red);
 //  analogWrite(greenPin, green);
 //  analogWrite(bluePin, blue);
 }
