@@ -55,6 +55,11 @@ HX711 scale(DOUT, CLK);
 //#define PWMB 6
 #define STBY 9
 
+// these constants are used to allow you to make your motor configuration 
+// line up with function names like forward.  Value can be 1 or -1
+const int offsetA = 1;
+Motor motor1 = Motor(AIN1, AIN2, PWMA, offsetA, STBY);
+
 void setup() {
   Serial.begin(9600);
 
@@ -72,6 +77,16 @@ void loop() {
   // Debug
   Serial.print(scale.get_units());
   Serial.println();
+
+  //todo: test the motor
+  //Use of the drive function which takes as arguements the speed
+  //and optional duration.  A negative speed will cause it to go
+  //backwards.  Speed can be from -255 to 255.  Also use of the 
+  //brake function which takes no arguements.
+  motor1.drive(255,1000);
+  motor1.drive(-255,1000);
+  motor1.brake();
+  delay(1000);
 
  
   //while we're looping. if someone's on the scale, do the theater chase. if someone's not on the scale, do the ready pulse.
