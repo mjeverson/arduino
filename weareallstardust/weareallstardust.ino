@@ -94,7 +94,7 @@ void loop() {
 // Sets the altar lights in a pattern that indicates it's listening, 
 void setAltarListenLighting(){
   // Theatre lighting around the outside three times
-  theaterChase(readyColors[0], readyColors[1], readyColors[2], 50, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS, 5);
+  theaterChase(readyColors[0], readyColors[1], readyColors[2], 50);
 }
 
 void doAltarReadyPulseThread(){
@@ -111,85 +111,43 @@ void doAltarReadyPulseThread(){
   }
 
   float factor = globalFadeLevel / 255.0;
-  showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
+  showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor);
 }
 
 // Theatre-style crawling lights. Changes spacing to be dynamic based on string size
-void theaterChaseThread(unsigned char r, unsigned char g, unsigned char b, unsigned char wait, int strand, int num_pixels) {
-  int theatre_spacing = num_pixels / 10;
+void theaterChaseThread(unsigned char r, unsigned char g, unsigned char b, unsigned char wait) {
+  int theatre_spacing = ALTAR_READY_PIXELS / 10;
   
-  while (true) {   
-    for (int q = 0; q < theatre_spacing ; q++) {   
-      unsigned int step = 0;
-      
-      cli();
-      
-      for (int i=0; i < num_pixels ; i++) {
-        if (step == q) {
-          sendPixel( r , g , b, strand);
-        } else {
-          sendPixel( 0 , 0 , 0, strand);
-        }
-        
-        step++;
-        
-        if (step == theatre_spacing) step = 0;
+  for (int q = 0; q < theatre_spacing ; q++) {   
+    unsigned int step = 0;
+    
+    cli();
+    
+    for (int i=0; i < ALTAR_READY_PIXELS ; i++) {
+      if (step == q) {
+        sendPixel( r , g , b);
+      } else {
+        sendPixel( 0 , 0 , 0);
       }
       
-      sei();
-      show();
-      delay(wait);
-    } 
+      step++;
+      
+      if (step == theatre_spacing) step = 0;
+    }
+    
+    sei();
+    show();
+    //todo: probably can't do delay here
+    delay(wait); 
   } 
 }
 
-void fadeLightingOutThenIn() {  
-  fadeLightingOut();
-  delay(3000);
-  fadeLightingIn();
-}
-
-void fadeStrandOutThenIn(float colors[], int strand, int num_pixels) {  
-  fadeStrandOut(colors, strand, num_pixels);
-  delay(3000);
-  fadeStrandIn(colors, strand, num_pixels);
-}
-
-//TODO: probably need to put this in threads with while()
-void fadeLightingOut() {  
-  for (float b = 255; b > 0; b -= FADE_SPEED) {
-    float factor = b / 255;
-    showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
-  }
-}
-
-void fadeLightingIn() {  
-  for (float b = 0; b < 255; b += FADE_SPEED) {
-    float factor = b / 255;
-    showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor, ALTAR_READY_PIXEL_BIT, ALTAR_READY_PIXELS);
-  }
-}
-
-void fadeStrandIn(float colors[], int strand, int num_pixels) {  
-  for (float b = 0; b < 255; b += FADE_SPEED) {
-    float factor = b / 255;
-    showColor(colors[0] * factor, colors[1] * factor, colors[2] * factor, strand, num_pixels);
-  }
-}
-
-void fadeStrandOut(float colors[], int strand, int num_pixels) {  
-  for (float b = 255; b > 0; b -= FADE_SPEED) {
-    float factor = b / 255;
-    showColor(colors[0] * factor, colors[1] * factor, colors[2] * factor, strand, num_pixels);
-  }
-}
-
 // Display a single color on the whole string
-void showColor(unsigned char r, unsigned char g, unsigned char b, int strand, int num_pixels) {
+void showColor(unsigned char r, unsigned char g, unsigned char b) {
   cli();  
   
-  for(int p = 0; p < num_pixels; p++) {
-    sendPixel(r, g, b, strand);
+  for(int p = 0; p < ALTAR_READY_PIXELS; p++) {
+    sendPixel(r, g, b);
   }
   
   sei();
@@ -271,14 +229,11 @@ inline void sendAltarReadyBit(bool bitVal) {
   // This has thenice side effect of avoid glitches on very long strings becuase 
 }  
 
-inline void sendByte( unsigned char byte, int strand ) {
+inline void sendByte( unsigned char byte) {
     //TODO: There has to be a better way than having a different function for each pixel_bit
     //TODO: Get a weird "impossible constraint in 'asm'" error 
     for( unsigned char bit = 0 ; bit < 8 ; bit++ ) {
-      if (strand == ALTAR_READY_PIXEL_BIT){
-        // If this works, why doesn't parameterizing it?
         sendAltarReadyBit(bitRead(byte, 7));
-      } 
 
       // Neopixel wants bit in highest-to-lowest order, so send highest bit (bit #7 in an 8-bit byte since they start at 0)                                                                                 
       // and then shift left so bit 6 moves into 7, 5 moves into 6, etc
@@ -300,11 +255,11 @@ void ledsetup() {
   bitSet(PIXEL_DDR, ALTAR_READY_PIXEL_BIT);
 }
 
-inline void sendPixel(unsigned char r, unsigned char g, unsigned char b, int strand)  {  
+inline void sendPixel(unsigned char r, unsigned char g, unsigned char b)  {  
   // Neopixel wants colors in green then red then blue order
-  sendByte(g, strand);          
-  sendByte(r, strand);
-  sendByte(b, strand); 
+  sendByte(g);          
+  sendByte(r);
+  sendByte(b); 
 }
 
 void show() {
