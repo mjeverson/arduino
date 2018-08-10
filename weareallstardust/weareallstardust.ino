@@ -175,6 +175,7 @@ void showColor(unsigned char r, unsigned char g, unsigned char b) {
 // **************************************************************************
 
 // More info on how to find these at http://www.arduino.cc/en/Reference/PortManipulation
+//todo: will need to figure this out again for the mega. Seriously though with the mega can probably just get away with regular neopixel stuff.
 #define PIXEL_PORT  PORTC  // Port of the pin the pixels are connected to
 #define PIXEL_DDR   DDRC   // Port of the pin the pixels are connected to
 
