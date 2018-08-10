@@ -1,18 +1,22 @@
 #include <HX711.h>
 #include <Thread.h>
+#include <SparkFun_TB6612.h>
 
 //todo: will need to add new vars for the neopixel rings
 // Number of pixels in the string
 #define ALTAR_READY_PIXELS 180 
+#define LED_RING_PIXELS 24
 
 // Bit of the pins the pixels are connected to (see LED API below)
 //todo: dont need anymore only one set of leds run this way
 //todo: will need pin #s for the neopixel rings though
-#define ALTAR_READY_PIXEL_BIT 2         
+#define ALTAR_READY_PIXEL_BIT 2
+#define LED_RING_A 7
+#define LED_RING_B 8
+#define LED_RING_C 9         
  
 #define FADE_SPEED 5
 #define PULSE_SPEED 8
-//float safetyColors[3] = {127, 0, 0};
 float readyColors[3] = {127, 127, 127};
 float globalFadeLevel = 255;
 bool globalFadeIn;
