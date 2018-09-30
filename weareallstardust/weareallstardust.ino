@@ -121,20 +121,20 @@ void loop() {
       //todo: why does motor_a not run until after motor_b.brake has been called?
       //todo: will need to test how this all works with threads...
       Serial.println("Doing motor2 drive pos");
-      motor_b.drive(255,1000);
-      Serial.println("Doing motor2 drive neg");
-      motor_b.drive(-255,1000);
-      Serial.println("Doing motor2 break");
-      motor_b.brake();
-      delay(1000);
-    
-      Serial.println("Doing motor1 drive pos");
-      motor_a.drive(255,1000);
-      Serial.println("Doing motor1 drive neg");
-      motor_a.drive(-255,1000);
-      Serial.println("Doing motor1 break");
-      motor_a.brake();
-      delay(1000);
+      motor_b.drive(255);
+//      Serial.println("Doing motor2 drive neg");
+//      motor_b.drive(-255,1000);
+//      Serial.println("Doing motor2 break");
+//      motor_b.brake();
+//      delay(1000);
+//    
+//      Serial.println("Doing motor1 drive pos");
+//      motor_a.drive(255,1000);
+//      Serial.println("Doing motor1 drive neg");
+//      motor_a.drive(-255,1000);
+//      Serial.println("Doing motor1 break");
+//      motor_a.brake();
+//      delay(1000);
 
       analog1.run();
       analog2.run();
