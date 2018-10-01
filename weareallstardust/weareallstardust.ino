@@ -107,6 +107,7 @@ void setup() {
 // track the thread IDs for the lighting modes
 int pulseThreadId;
 int theatreThreadId;
+int rainbowThreadId;
 
 void doAltarPulseThread(){
   while(true){
@@ -120,22 +121,28 @@ void doAltarChaseThread(){
   }
 }
 
+void doRainbowThread(){
+  while(true){
+    rainbowCycle(20);
+  }
+}
+
 void loop() {
   // Debug
   Serial.print(scale.get_units());
   Serial.println();
-
-  if (Serial.available()) {    
-    // check if a number was received
-    if (Serial.read() == '0') {
-      Serial.println("IT'S PARTY TIME!");
-      
-    }
-    else {
-      Serial.println("Party's over... disengaging motor locomotion protocol :(");
-      
-    }
-  } 
+//
+//  if (Serial.available()) {    
+//    // check if a number was received
+//    if (Serial.read() == '0') {
+//      Serial.println("IT'S PARTY TIME!");
+//      
+//    }
+//    else {
+//      Serial.println("Party's over... disengaging motor locomotion protocol :(");
+//      
+//    }
+//  } 
 
   //while we're looping. if someone's on the scale, do the theater chase. if someone's not on the scale, do the ready pulse.
   if(scale.get_units() > 25){
@@ -145,6 +152,10 @@ void loop() {
     // Kill pulsing thread if it's running
     if(threads.getState(pulseThreadId) == Threads::RUNNING){
       threads.kill(pulseThreadId);
+    }
+
+    if(threads.getState(rainbowThreadId) != Threads::RUNNING){
+      rainbowThreadId = threads.addThread(doRainbowThread());
     }
     
     // Start a thread that does theatre chase if it's not already running
@@ -162,6 +173,12 @@ void loop() {
     if(threads.getState(theatreThreadId) != Threads::RUNNING){
       threads.kill(theatreThreadId);
     }
+
+    if(threads.getState(rainbowThreadId) == Threads::RUNNING){
+      threads.kill(rainbowThreadId);
+    }
+
+    //todo: Also reset the rainbow lights here
     
     // Start the pulsing thread if it's not already running
     if(threads.getState(pulseThreadId) == Threads::RUNNING){
@@ -216,7 +233,9 @@ void rainbowCycle(uint8_t wait) {
       strip_c.setPixelColor(i, Wheel(((i * 256 / strip_c.numPixels()) + j) & 255));
     }
     strip_a.show();
-    delay(wait);
+    strip_b.show();
+    strip_c.show();
+    threads.delay(wait);
   }
 }
 
