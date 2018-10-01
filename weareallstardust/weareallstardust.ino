@@ -178,7 +178,7 @@ void loop() {
       threads.kill(rainbowThreadId);
     }
 
-    //todo: Also reset the rainbow lights here
+    resetRainbowLights();
     
     // Start the pulsing thread if it's not already running
     if(threads.getState(pulseThreadId) == Threads::RUNNING){
@@ -192,35 +192,35 @@ void loop() {
 
 // todo: she wants these to be the rainbow strandtest thing, not just bright white.
 // todo: wanna just thread to always do the rainbow strandtest, then all fade does is set brightness?
-void fadeLights(bool fadeIn, int speed){
-  if (fadeIn) {
-    for (int i = 0; i <= 255; i++) {
-      for(int j=0; j< strip_a.numPixels(); j++) {
-        strip_a.setPixelColor(j, i, i, i);
-        strip_b.setPixelColor(j, i, i, i);
-        strip_c.setPixelColor(j, i, i, i);
-      }
-
-      strip_a.show();
-      strip_b.show();
-      strip_c.show();        
-      delay(speed);
-    }
-  } else {
-    for (int i = 255; i >= 0; i--) {
-      for(int j=0; j< strip_a.numPixels(); j++) {
-        strip_a.setPixelColor(j, i, i, i);
-        strip_b.setPixelColor(j, i, i, i);
-        strip_c.setPixelColor(j, i, i, i);
-      }
-
-      strip_a.show();
-      strip_b.show();
-      strip_c.show();        
-      delay(speed);
-    }
-  }
-}
+//void fadeLights(bool fadeIn, int speed){
+//  if (fadeIn) {
+//    for (int i = 0; i <= 255; i++) {
+//      for(int j=0; j< strip_a.numPixels(); j++) {
+//        strip_a.setPixelColor(j, i, i, i);
+//        strip_b.setPixelColor(j, i, i, i);
+//        strip_c.setPixelColor(j, i, i, i);
+//      }
+//
+//      strip_a.show();
+//      strip_b.show();
+//      strip_c.show();        
+//      delay(speed);
+//    }
+//  } else {
+//    for (int i = 255; i >= 0; i--) {
+//      for(int j=0; j< strip_a.numPixels(); j++) {
+//        strip_a.setPixelColor(j, i, i, i);
+//        strip_b.setPixelColor(j, i, i, i);
+//        strip_c.setPixelColor(j, i, i, i);
+//      }
+//
+//      strip_a.show();
+//      strip_b.show();
+//      strip_c.show();        
+//      delay(speed);
+//    }
+//  }
+//}
 
 // Slightly different, this makes the rainbow equally distributed throughout
 void rainbowCycle(uint8_t wait) {
@@ -237,6 +237,18 @@ void rainbowCycle(uint8_t wait) {
     strip_c.show();
     threads.delay(wait);
   }
+}
+
+void resetRainbowLights() {
+  for(i=0; i< strip_a.numPixels(); i++) {
+    strip_a.setPixelColor(i, 0, 0, 0);
+    strip_b.setPixelColor(i, 0, 0, 0);
+    strip_c.setPixelColor(i, 0, 0, 0);
+  }
+  
+  strip_a.show();
+  strip_b.show();
+  strip_c.show();
 }
 
 void driveAll(int speed) {
