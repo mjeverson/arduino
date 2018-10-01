@@ -109,37 +109,18 @@ int pulseThreadId;
 int theatreThreadId;
 
 void doAltarPulseThread(){
-//  while(true){
-//    if(!playWav1.isPlaying()){
-//      if (audioFile){
-//        audioFile.close();
-//      }
-//      
-//      if(audioFile = sd2.open("reel16.wav")){
-//        Serial.print("About to play reel!");
-//        playWav1.play(audioFile);
-//      } else {
-//        Serial.print("problem opening sound file in loop");
-//      }
-//    }
-//
-//    //TODO: might not even need this?
-//    threads.delay(10);
-//  }
+  while(true){
+    doAltarPulse();
+  }
 }
 
 void doAltarChaseThread(){
   while(true){
+    theaterChaseStrandTest(strip_altar.Color(127, 127, 127), 50);
   }
 }
 
-void fadeLightsThread(bool brighten){
-}
-
 void loop() {
-  //todo: keep this it works, throw it in a thread
-//  theaterChaseStrandTest(strip_altar.Color(127, 127, 127), 50); // White
-
   // Debug
   Serial.print(scale.get_units());
   Serial.println();
@@ -158,27 +139,46 @@ void loop() {
 
   //while we're looping. if someone's on the scale, do the theater chase. if someone's not on the scale, do the ready pulse.
   if(scale.get_units() > 50){
-    //todo: kill pulsing thread if it's running
-    //todo: start a thread that does theatre chase if it's not already running
+    // Fade lights in (no thread)
+    fadeLights(true);
+    
+    // Kill pulsing thread if it's running
+    if(threads.getState(pulseThreadId) == Threads::RUNNING){
+      threads.kill(pulseThreadId);
+    }
+    
+    // Start a thread that does theatre chase if it's not already running
+    if(threads.getState(theatreThreadId) != Threads::RUNNING){
+      theatreThreadId = threads.addThread(doAltarChaseThread);
+    }
     
     // Start/Continue driving the motors
     driveAll(150);
-    
-    //todo: brighten overhead lights
-//    theaterChaseStrandTest(strip.Color(127, 127, 127), 50); // White
   } else {
-    //todo: kill theatre chase thread if it's running 
-    //todo: start a thread for regular pulsing if it's not already running (setAltarListenLighting())
+    // Darken overhead lights (no thread)
+    fadeLights(false);
+    
+    // Kill the theatre chase thread if it's running
+    if(threads.getState(theatreThreadId) != Threads::RUNNING){
+      threads.kill(theatreThreadId);
+    }
+    
+    // Start the pulsing thread if it's not already running
+    if(threads.getState(pulseThreadId) == Threads::RUNNING){
+      pulseThreadId = threads.addThread(doAltarPulseThread);
+    }
     
     // Stops the motors
     stopAll();
-    
-    //todo: darken overhead lights
-    //doAltarReadyPulse();  
   }
 }
 
-//void doAltarReadyPulseThread(){
+void fadeLights(bool fadeIn){
+  //todo: implement
+}
+
+void doAltarPulse(){
+  //todo: implement
 //  if (globalFadeLevel >= 255) {
 //    globalFadeIn = false;
 //  } else if (globalFadeLevel <= 1) {
@@ -193,7 +193,7 @@ void loop() {
 //
 //  float factor = globalFadeLevel / 255.0;
 //  showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor);
-//}
+}
 
 void driveAll(int speed) {
     driveMotor(1, speed);
