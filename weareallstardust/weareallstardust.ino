@@ -1,23 +1,27 @@
+/***************************************************
+  We Are All Stardust 
+  Michael Everson
+  
+  Designed for use with Teensy 3.6
+  
+  https://github.com/ftrias/TeensyThreads
+  https://learn.sparkfun.com/tutorials/tb6612fng-hookup-guide?_ga=2.224845469.683491163.1533922223-1605071062.1518369019
+ ****************************************************/
+ 
 #include <Adafruit_NeoPixel.h>
 #include <HX711.h>
-#include <Thread.h>
-//todo: arduinothreads https://github.com/ivanseidel/ArduinoThread
-#include <SparkFun_TB6612.h>
-//todo: motor waklthrough https://learn.sparkfun.com/tutorials/tb6612fng-hookup-guide?_ga=2.224845469.683491163.1533922223-1605071062.1518369019
+#include <TeensyThreads.h>
 
 // Number of pixels in the string
 #define ALTAR_READY_PIXELS 180 
 #define LED_RING_PIXELS 24
 
 // Bit of the pins the pixels are connected to (see LED API below)
-//todo: dont need anymore only one set of leds run this way
-//todo: will need pin #s for the neopixel rings though
-//todo: must be pwm pins
 #define ALTAR_READY_PIXEL_BIT 2
-#define LED_RING_A 10
-#define LED_RING_B 11
-#define LED_RING_C 12
-#define LED_ALTAR 7
+#define LED_RING_A 33
+#define LED_RING_B 34
+#define LED_RING_C 35
+#define LED_ALTAR 36
 
 Adafruit_NeoPixel strip_a = Adafruit_NeoPixel(LED_RING_PIXELS, LED_RING_A, NEO_GRB + NEO_KHZ800);        
 Adafruit_NeoPixel strip_b = Adafruit_NeoPixel(LED_RING_PIXELS, LED_RING_B, NEO_GRB + NEO_KHZ800);        
@@ -29,75 +33,73 @@ Adafruit_NeoPixel strip_altar = Adafruit_NeoPixel(180, LED_ALTAR, NEO_GRB + NEO_
 
 // Pins the scale is using. Note, we're not actually using CLK for the clock pin, which is odd. Does it only work because of the crystal on the dmxfire?
 //todo: double check these pins since we're using a mega now
-#define CLK  A0
-#define DOUT  A1
+#define CLK  13
+#define DOUT  14
 
 //Sets up the scale. This value is obtained using the SparkFun_HX711_Calibration sketch.
 //todo: do we need to recalibrate?
 #define calibration_factor -9890.0
 HX711 scale(DOUT, CLK);
 
-// Pins for all inputs, keep in mind the PWM defines must be on PWM pins
-// the default pins listed are the ones used on the Redbot (ROB-12097) with
-// the exception of STBY which the Redbot controls with a physical switch
-#define AIN1 2
-#define AIN2 3
-#define PWMA 4
+// Pins for all inputs. Motors A & B are on the same driver so they use the same STBY. Keep in mind the PWM defines must be on PWM pins.
+// Alternatively: STBYA 2 All As 3 4 5 All Bs 6 7 8 STBY C 9 All Cs 10 11 12
+int STBYA = 7; //standby
+int STBYC = 10; //standby
 
-#define BIN1 7 //todo: why does setting these to 23-25 cause problems?
-#define BIN2 8
-#define PWMB 5
+//Motor A
+int PWMA = 2; //Speed control
+int AIN1 = 5; //Direction
+int AIN2 = 6; //Direction
 
-#define CIN1 12 //todo: why does setting these to 23-25 cause problems?
-#define CIN2 13
-#define PWMC 6
+//Motor B
+int PWMB = 3; //Speed control
+int BIN1 = 8; //Direction
+int BIN2 = 9; //Direction
 
-#define STBYA 9
-#define STBYB 10
-#define STBYC 11
-
-// these constants are used to allow you to make your motor configuration 
-// line up with function names like forward.  Value can be 1 or -1
-Motor motor_a = Motor(AIN1, AIN2, PWMA, 1, STBYA);
-Motor motor_b = Motor(BIN1, BIN2, PWMB, 1, STBYB);
-//Motor motor_c = Motor(BIN1, BIN2, PWMB, 1, STBYB);
-
-
-///todo: new thread class for motors or lights
-// Create a new Class, called SensorThread, that inherits from Thread
-class MotorThread: public Thread
-{
-public:
-  int value;
-  int pin;
-
-  // No, "run" cannot be anything...
-  // Because Thread uses the method "run" to run threads,
-  // we MUST overload this method here. using anything other
-  // than "run" will not work properly...
-  void run(){
-    // Reads the analog pin, and saves it localy
-    value = map(analogRead(pin), 0,1023,0,255);
-    runned();
-  }
-};
-
-MotorThread analog1 = MotorThread();
-MotorThread analog2 = MotorThread();
+//Motor C
+int PWMC = 4; //Speed control
+int CIN1 = 11; //Direction
+int CIN2 = 12; //Direction
 
 void setup() {
   Serial.begin(9600);
 
+  // initialize scale
   scale.set_scale(calibration_factor); 
   scale.tare();  
 
-  analog1.pin = A1;
-  analog1.setInterval(100);
+  // initialize motor pins
+  pinMode(STBYA, OUTPUT);
+  pinMode(STBYC, OUTPUT);
+  digitalWrite(STBYA, HIGH);
+  digitalWrite(STBYC, HIGH);
+  
+  pinMode(PWMA, OUTPUT);
+  pinMode(AIN1, OUTPUT);
+  pinMode(AIN2, OUTPUT);
+  
+  pinMode(PWMB, OUTPUT);
+  pinMode(BIN1, OUTPUT);
+  pinMode(BIN2, OUTPUT);
 
-  // Configures Thread analog2
-  analog2.pin = A2;
-  analog2.setInterval(100);
+  pinMode(PWMC, OUTPUT);
+  pinMode(CIN1, OUTPUT);
+  pinMode(CIN2, OUTPUT);
 
+  // Initialize LEDs
+  strip_a.begin();
+  strip_a.show();
+  
+  strip_b.begin();
+  strip_b.show();
+  
+  strip_c.begin();
+  strip_c.show();
+  
+  strip_altar.begin();
+  strip_altar.show(); 
+
+  // Clear the serial buffer and prep for input
   Serial.flush();
   Serial.println("What time is it, party cat?");
 }
@@ -106,66 +108,71 @@ void setup() {
 int pulseThreadId;
 int theatreThreadId;
 
+void doAltarPulseThread(){
+//  while(true){
+//    if(!playWav1.isPlaying()){
+//      if (audioFile){
+//        audioFile.close();
+//      }
+//      
+//      if(audioFile = sd2.open("reel16.wav")){
+//        Serial.print("About to play reel!");
+//        playWav1.play(audioFile);
+//      } else {
+//        Serial.print("problem opening sound file in loop");
+//      }
+//    }
+//
+//    //TODO: might not even need this?
+//    threads.delay(10);
+//  }
+}
+
+void doAltarChaseThread(){
+  while(true){
+  }
+}
+
+void fadeLightsThread(bool brighten){
+}
+
 void loop() {
-  //todo: keep this it works
+  //todo: keep this it works, throw it in a thread
 //  theaterChaseStrandTest(strip_altar.Color(127, 127, 127), 50); // White
 
   // Debug
-//  Serial.print(scale.get_units());
-//  Serial.println();
+  Serial.print(scale.get_units());
+  Serial.println();
 
   if (Serial.available()) {    
     // check if a number was received
     if (Serial.read() == '0') {
       Serial.println("IT'S PARTY TIME!");
-      //todo: why does motor_a not run until after motor_b.brake has been called?
-      //todo: will need to test how this all works with threads...
-      Serial.println("Doing motor2 drive pos");
-      motor_b.drive(255);
-//      Serial.println("Doing motor2 drive neg");
-//      motor_b.drive(-255,1000);
-//      Serial.println("Doing motor2 break");
-//      motor_b.brake();
-//      delay(1000);
-//    
-//      Serial.println("Doing motor1 drive pos");
-//      motor_a.drive(255,1000);
-//      Serial.println("Doing motor1 drive neg");
-//      motor_a.drive(-255,1000);
-//      Serial.println("Doing motor1 break");
-//      motor_a.brake();
-//      delay(1000);
-
-      analog1.run();
-      analog2.run();
+      
     }
     else {
       Serial.println("Party's over... disengaging motor locomotion protocol :(");
-      forward(motor_a, motor_b, 150);
-//      motor_a.drive(150);
+      
     }
   } 
 
-  // Get the fresh readings
-  //todo: keep this it seems to work
-//  Serial.print("Analog1 Thread: ");
-//  Serial.println(analog1.value);
-//
-//  Serial.print("Analog2 Thread: ");
-//  Serial.println(analog2.value);
-  //todo: need a way to stop threads from running. threadcontroller.clear()?
- 
   //while we're looping. if someone's on the scale, do the theater chase. if someone's not on the scale, do the ready pulse.
   if(scale.get_units() > 50){
     //todo: kill pulsing thread if it's running
     //todo: start a thread that does theatre chase if it's not already running
-    //todo: start a thread that does motors if it's not already running
+    
+    // Start/Continue driving the motors
+    driveAll(150);
+    
     //todo: brighten overhead lights
 //    theaterChaseStrandTest(strip.Color(127, 127, 127), 50); // White
   } else {
     //todo: kill theatre chase thread if it's running 
     //todo: start a thread for regular pulsing if it's not already running (setAltarListenLighting())
-    //todo: kill "motors" thread
+    
+    // Stops the motors
+    stopAll();
+    
     //todo: darken overhead lights
     //doAltarReadyPulse();  
   }
@@ -187,6 +194,73 @@ void loop() {
 //  float factor = globalFadeLevel / 255.0;
 //  showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor);
 //}
+
+void driveAll(int speed) {
+    driveMotor(1, speed);
+    driveMotor(2, speed);
+    driveMotor(3, speed);
+}
+
+void stopAll(){
+    stopMotor(1);
+    stopMotor(2);
+    stopMotor(3);
+}
+
+void driveMotor(int motor, int speed){
+  switch (motor) {
+    case 1: {
+      Serial.println("driving motor 1");
+      digitalWrite(AIN1, HIGH);
+      digitalWrite(AIN2, LOW);
+      analogWrite(PWMA, speed);
+      break;
+    }
+    case 2: {
+      Serial.println("drive motor 2");
+      digitalWrite(BIN1, HIGH);
+      digitalWrite(BIN2, LOW);
+      analogWrite(PWMB, speed);
+      break;
+    }
+    case 3:{
+      Serial.println("drive motor 3");
+      digitalWrite(CIN1, HIGH);
+      digitalWrite(CIN2, LOW);
+      analogWrite(PWMC, speed);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+}
+
+void stopMotor(int motor){
+  switch (motor) {
+    case 1: {
+      Serial.println("stopping motor 1");
+      digitalWrite(AIN1, LOW);
+      digitalWrite(AIN2, LOW);
+      break;
+    }
+    case 2: {
+      Serial.println("stopping motor 2");
+      digitalWrite(BIN1, LOW);
+      digitalWrite(BIN2, LOW);
+      break;
+    }
+    case 3:{
+      Serial.println("stopping motor 3");
+      digitalWrite(CIN1, LOW);
+      digitalWrite(CIN2, LOW);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+}
 
 //Theatre-style crawling lights.
 void theaterChaseStrandTest(uint32_t c, uint8_t wait) {
