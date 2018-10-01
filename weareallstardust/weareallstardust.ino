@@ -110,7 +110,7 @@ int theatreThreadId;
 
 void doAltarPulseThread(){
   while(true){
-    doAltarPulse();
+    doAltarPulse(10);
   }
 }
 
@@ -138,9 +138,9 @@ void loop() {
   } 
 
   //while we're looping. if someone's on the scale, do the theater chase. if someone's not on the scale, do the ready pulse.
-  if(scale.get_units() > 50){
+  if(scale.get_units() > 25){
     // Fade lights in (no thread)
-    fadeLights(true);
+    fadeLights(true, 10);
     
     // Kill pulsing thread if it's running
     if(threads.getState(pulseThreadId) == Threads::RUNNING){
@@ -156,7 +156,7 @@ void loop() {
     driveAll(150);
   } else {
     // Darken overhead lights (no thread)
-    fadeLights(false);
+    fadeLights(false, 10);
     
     // Kill the theatre chase thread if it's running
     if(threads.getState(theatreThreadId) != Threads::RUNNING){
@@ -173,26 +173,51 @@ void loop() {
   }
 }
 
-void fadeLights(bool fadeIn){
-  //todo: implement
+// todo: she wants these to be the rainbow strandtest thing, not just bright white.
+// todo: wanna just thread to always do the rainbow strandtest, then all fade does is set brightness?
+void fadeLights(bool fadeIn, int speed){
+  if (fadeIn) {
+    for (int i = 0; i <= 255; i++) {
+      for(int j=0; j< strip_a.numPixels(); j++) {
+        strip_a.setPixelColor(j, i, i, i);
+        strip_b.setPixelColor(j, i, i, i);
+        strip_c.setPixelColor(j, i, i, i);
+      }
+
+      strip_a.show();
+      strip_b.show();
+      strip_c.show();        
+      delay(speed);
+    }
+  } else {
+    for (int i = 255; i >= 0; i--) {
+      for(int j=0; j< strip_a.numPixels(); j++) {
+        strip_a.setPixelColor(j, i, i, i);
+        strip_b.setPixelColor(j, i, i, i);
+        strip_c.setPixelColor(j, i, i, i);
+      }
+
+      strip_a.show();
+      strip_b.show();
+      strip_c.show();        
+      delay(speed);
+    }
+  }
 }
 
-void doAltarPulse(){
-  //todo: implement
-//  if (globalFadeLevel >= 255) {
-//    globalFadeIn = false;
-//  } else if (globalFadeLevel <= 1) {
-//    globalFadeIn = true;     
-//  }
-//
-//  if (globalFadeIn){
-//    globalFadeLevel += PULSE_SPEED;
-//  } else {
-//    globalFadeLevel -= PULSE_SPEED;
-//  }
-//
-//  float factor = globalFadeLevel / 255.0;
-//  showColor(readyColors[0] * factor, readyColors[1] * factor, readyColors[2] * factor);
+// Slightly different, this makes the rainbow equally distributed throughout
+void rainbowCycle(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+    for(i=0; i< strip_a.numPixels(); i++) {
+      strip_a.setPixelColor(i, Wheel(((i * 256 / strip_a.numPixels()) + j) & 255));
+      strip_b.setPixelColor(i, Wheel(((i * 256 / strip_b.numPixels()) + j) & 255));
+      strip_c.setPixelColor(i, Wheel(((i * 256 / strip_c.numPixels()) + j) & 255));
+    }
+    strip_a.show();
+    delay(wait);
+  }
 }
 
 void driveAll(int speed) {
@@ -262,7 +287,37 @@ void stopMotor(int motor){
   }
 }
 
+// Intended to be run within a thread
+void doAltarPulse(int speed){
+  for (int i = 0; i <= 255; i++) {
+    for(int j=0; j< strip_a.numPixels(); j++) {
+      strip_a.setPixelColor(j, i, i, i);
+      strip_b.setPixelColor(j, i, i, i);
+      strip_c.setPixelColor(j, i, i, i);
+    }
+
+    strip_a.show();
+    strip_b.show();
+    strip_c.show();        
+    threads.delay(speed);
+  }
+
+  for (int i = 255; i >= 0; i--) {
+    for(int j=0; j< strip_a.numPixels(); j++) {
+      strip_a.setPixelColor(j, i, i, i);
+      strip_b.setPixelColor(j, i, i, i);
+      strip_c.setPixelColor(j, i, i, i);
+    }
+
+    strip_a.show();
+    strip_b.show();
+    strip_c.show();        
+    threads.delay(speed);
+  }
+}
+
 //Theatre-style crawling lights.
+// Intended to be run within a thread
 void theaterChaseStrandTest(uint32_t c, uint8_t wait) {
   for (int j=0; j<10; j++) {  //do 10 cycles of chasing
     for (int q=0; q < 3; q++) {
@@ -271,7 +326,7 @@ void theaterChaseStrandTest(uint32_t c, uint8_t wait) {
       }
       strip_altar.show();
      
-      delay(wait);
+      threads.delay(wait);
      
       for (int i=0; i < strip_altar.numPixels(); i=i+3) {
         strip_altar.setPixelColor(i+q, 0);        //turn every third pixel off
@@ -279,3 +334,18 @@ void theaterChaseStrandTest(uint32_t c, uint8_t wait) {
     }
   }
 }
+
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(byte WheelPos) {
+  if(WheelPos < 85) {
+    return strip_a.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  } else if(WheelPos < 170) {
+     WheelPos -= 85;
+     return strip_a.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  } else {
+     WheelPos -= 170;
+     return strip_a.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+}
+
