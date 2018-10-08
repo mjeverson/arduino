@@ -14,7 +14,7 @@
 
 // Number of pixels in the string
 #define ALTAR_READY_PIXELS 180 
-#define LED_RING_PIXELS 24
+#define LED_RING_PIXELS 25
 
 // Bit of the pins the pixels are connected to (see LED API below)
 #define ALTAR_READY_PIXEL_BIT 2
@@ -26,7 +26,7 @@
 Adafruit_NeoPixel strip_a = Adafruit_NeoPixel(LED_RING_PIXELS, LED_RING_A, NEO_GRB + NEO_KHZ800);        
 Adafruit_NeoPixel strip_b = Adafruit_NeoPixel(LED_RING_PIXELS, LED_RING_B, NEO_GRB + NEO_KHZ800);        
 Adafruit_NeoPixel strip_c = Adafruit_NeoPixel(LED_RING_PIXELS, LED_RING_C, NEO_GRB + NEO_KHZ800);  
-Adafruit_NeoPixel strip_altar = Adafruit_NeoPixel(180, LED_ALTAR, NEO_GRB + NEO_KHZ800);      
+Adafruit_NeoPixel strip_altar = Adafruit_NeoPixel(ALTAR_READY_PIXELS, LED_ALTAR, NEO_RGB + NEO_KHZ800);      
  
 #define FADE_SPEED 5
 #define PULSE_SPEED 8
@@ -60,6 +60,11 @@ int BIN2 = 9; //Direction
 int PWMC = 4; //Speed control
 int CIN1 = 11; //Direction
 int CIN2 = 12; //Direction
+
+// track the thread IDs for the lighting modes
+int pulseThreadId;
+int theatreThreadId;
+int rainbowThreadId;
 
 void setup() {
   Serial.begin(9600);
@@ -102,16 +107,14 @@ void setup() {
   // Clear the serial buffer and prep for input
   Serial.flush();
   Serial.println("What time is it, party cat?");
-}
 
-// track the thread IDs for the lighting modes
-int pulseThreadId;
-int theatreThreadId;
-int rainbowThreadId;
+//  pulseThreadId = threads.addThread(doAltarPulseThread);
+  resetAltarLights();
+}
 
 void doAltarPulseThread(){
   while(true){
-    doAltarPulse(10);
+    doAltarPulse();
   }
 }
 
@@ -123,104 +126,43 @@ void doAltarChaseThread(){
 
 void doRainbowThread(){
   while(true){
+    Serial.println("doing rainbow thread");
     rainbowCycle(20);
   }
 }
+
+bool isActive = false;
 
 void loop() {
   // Debug
   Serial.print(scale.get_units());
   Serial.println();
-//
-//  if (Serial.available()) {    
-//    // check if a number was received
-//    if (Serial.read() == '0') {
-//      Serial.println("IT'S PARTY TIME!");
-//      
-//    }
-//    else {
-//      Serial.println("Party's over... disengaging motor locomotion protocol :(");
-//      
-//    }
-//  } 
 
   //while we're looping. if someone's on the scale, do the theater chase. if someone's not on the scale, do the ready pulse.
   if(scale.get_units() > 25){
-    // Fade lights in (no thread)
-    fadeLights(true, 10);
-    
-    // Kill pulsing thread if it's running
-    if(threads.getState(pulseThreadId) == Threads::RUNNING){
+    if(!isActive){
       threads.kill(pulseThreadId);
-    }
-
-    if(threads.getState(rainbowThreadId) != Threads::RUNNING){
-      rainbowThreadId = threads.addThread(doRainbowThread());
-    }
-    
-    // Start a thread that does theatre chase if it's not already running
-    if(threads.getState(theatreThreadId) != Threads::RUNNING){
+      rainbowThreadId = threads.addThread(doRainbowThread);
       theatreThreadId = threads.addThread(doAltarChaseThread);
     }
     
     // Start/Continue driving the motors
     driveAll(150);
+    isActive = true;
   } else {
-    // Darken overhead lights (no thread)
-    fadeLights(false, 10);
-    
-    // Kill the theatre chase thread if it's running
-    if(threads.getState(theatreThreadId) != Threads::RUNNING){
+    if(isActive){
       threads.kill(theatreThreadId);
-    }
-
-    if(threads.getState(rainbowThreadId) == Threads::RUNNING){
       threads.kill(rainbowThreadId);
-    }
-
-    resetRainbowLights();
-    
-    // Start the pulsing thread if it's not already running
-    if(threads.getState(pulseThreadId) == Threads::RUNNING){
-      pulseThreadId = threads.addThread(doAltarPulseThread);
+//      pulseThreadId = threads.addThread(doAltarChaseThread);
+      resetAltarLights();
+      resetRainbowLights();
     }
     
     // Stops the motors
     stopAll();
+    isActive = false;
   }
 }
-
-// todo: she wants these to be the rainbow strandtest thing, not just bright white.
-// todo: wanna just thread to always do the rainbow strandtest, then all fade does is set brightness?
-//void fadeLights(bool fadeIn, int speed){
-//  if (fadeIn) {
-//    for (int i = 0; i <= 255; i++) {
-//      for(int j=0; j< strip_a.numPixels(); j++) {
-//        strip_a.setPixelColor(j, i, i, i);
-//        strip_b.setPixelColor(j, i, i, i);
-//        strip_c.setPixelColor(j, i, i, i);
-//      }
-//
-//      strip_a.show();
-//      strip_b.show();
-//      strip_c.show();        
-//      delay(speed);
-//    }
-//  } else {
-//    for (int i = 255; i >= 0; i--) {
-//      for(int j=0; j< strip_a.numPixels(); j++) {
-//        strip_a.setPixelColor(j, i, i, i);
-//        strip_b.setPixelColor(j, i, i, i);
-//        strip_c.setPixelColor(j, i, i, i);
-//      }
-//
-//      strip_a.show();
-//      strip_b.show();
-//      strip_c.show();        
-//      delay(speed);
-//    }
-//  }
-//}
 
 // Slightly different, this makes the rainbow equally distributed throughout
 void rainbowCycle(uint8_t wait) {
@@ -240,15 +182,23 @@ void rainbowCycle(uint8_t wait) {
 }
 
 void resetRainbowLights() {
-  for(i=0; i< strip_a.numPixels(); i++) {
-    strip_a.setPixelColor(i, 0, 0, 0);
-    strip_b.setPixelColor(i, 0, 0, 0);
-    strip_c.setPixelColor(i, 0, 0, 0);
+  for(int i=0; i< strip_a.numPixels(); i++) {
+    strip_a.setPixelColor(i, strip_a.Color(0, 0, 0));
+    strip_b.setPixelColor(i, strip_b.Color(0, 0, 0));
+    strip_c.setPixelColor(i, strip_c.Color(0, 0, 0));
   }
   
   strip_a.show();
   strip_b.show();
   strip_c.show();
+}
+
+void resetAltarLights() {
+  for(int i=0; i< strip_altar.numPixels(); i++) {
+    strip_altar.setPixelColor(i, strip_altar.Color(127, 127, 127));
+  }
+  
+  strip_altar.show();
 }
 
 void driveAll(int speed) {
@@ -295,19 +245,19 @@ void driveMotor(int motor, int speed){
 void stopMotor(int motor){
   switch (motor) {
     case 1: {
-      Serial.println("stopping motor 1");
+//      Serial.println("stopping motor 1");
       digitalWrite(AIN1, LOW);
       digitalWrite(AIN2, LOW);
       break;
     }
     case 2: {
-      Serial.println("stopping motor 2");
+//      Serial.println("stopping motor 2");
       digitalWrite(BIN1, LOW);
       digitalWrite(BIN2, LOW);
       break;
     }
     case 3:{
-      Serial.println("stopping motor 3");
+//      Serial.println("stopping motor 3");
       digitalWrite(CIN1, LOW);
       digitalWrite(CIN2, LOW);
       break;
@@ -319,31 +269,24 @@ void stopMotor(int motor){
 }
 
 // Intended to be run within a thread
-void doAltarPulse(int speed){
-  for (int i = 0; i <= 255; i++) {
-    for(int j=0; j< strip_a.numPixels(); j++) {
-      strip_a.setPixelColor(j, i, i, i);
-      strip_b.setPixelColor(j, i, i, i);
-      strip_c.setPixelColor(j, i, i, i);
+void doAltarPulse(){
+  Serial.println("pulsing altar");
+  for (int i = 0; i <= 127; i+=1) {
+    for(int j=0; j< strip_altar.numPixels(); j++) {
+      strip_altar.setPixelColor(j, i,i,i);
     }
 
-    strip_a.show();
-    strip_b.show();
-    strip_c.show();        
-    threads.delay(speed);
+    strip_altar.show();      
+    threads.delay(100);
   }
 
-  for (int i = 255; i >= 0; i--) {
-    for(int j=0; j< strip_a.numPixels(); j++) {
-      strip_a.setPixelColor(j, i, i, i);
-      strip_b.setPixelColor(j, i, i, i);
-      strip_c.setPixelColor(j, i, i, i);
+  for (int k = 127; k >=0; k-=1) {
+    for(int l=0; l< strip_altar.numPixels(); l++) {
+      strip_altar.setPixelColor(l, k,k,k);
     }
 
-    strip_a.show();
-    strip_b.show();
-    strip_c.show();        
-    threads.delay(speed);
+    strip_altar.show();      
+    threads.delay(100);
   }
 }
 
@@ -353,11 +296,11 @@ void theaterChaseStrandTest(uint32_t c, uint8_t wait) {
   for (int j=0; j<10; j++) {  //do 10 cycles of chasing
     for (int q=0; q < 3; q++) {
       for (int i=0; i < strip_altar.numPixels(); i=i+3) {
-        strip_altar.setPixelColor(i+q, c);    //turn every third pixel on
+        strip_altar.setPixelColor(i+q, 127,127,127);    //turn every third pixel on
       }
       strip_altar.show();
      
-      threads.delay(wait);
+      threads.delay(100);
      
       for (int i=0; i < strip_altar.numPixels(); i=i+3) {
         strip_altar.setPixelColor(i+q, 0);        //turn every third pixel off
@@ -379,4 +322,5 @@ uint32_t Wheel(byte WheelPos) {
      return strip_a.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
+
 

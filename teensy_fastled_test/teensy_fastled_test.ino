@@ -1,11 +1,11 @@
 #include <FastLED.h>
 
-#define NUM_LEDS 24
+#define NUM_LEDS 18
 
 // Sometimes chipsets wire in a backwards sort of way
 struct CRGB { unsigned char b; unsigned char r; unsigned char g; };
 // struct CRGB { unsigned char r; unsigned char g; unsigned char b; };
-//struct CRGB *leds;
+struct CRGB *leds;
 
 void setup()
 {
